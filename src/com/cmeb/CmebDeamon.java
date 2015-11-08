@@ -41,12 +41,14 @@ public class CmebDeamon {
 		CmebUtil cmeb = new CmebUtil();
 
 		// 卡列表
-
+		logger.info("开始写入流量短信余额信息");
 		boolean result = false;
 		try {
 			PageData pd = new PageData();
 			List<PageData> list = cardInfoService.listAll(pd);
 			if (list == null) {
+
+				logger.info("写入流量短信余额信息，未找到卡信息");
 				return false;
 			}
 
@@ -58,6 +60,17 @@ public class CmebDeamon {
 				PageData insertPD = new PageData();
 				insertPD.put("MSISDN", MSISDN);
 
+
+				// 查询余额
+				double balance = cmeb.balancerealsingle(MSISDN);
+				if (balance >= 0) {
+					insertPD.put("balance", balance);
+				}
+				else{
+					logger.info("写入流量短信余额信息，查询余额失败");
+					return false;
+				}
+				
 				// 查询GPRS使用量
 				Date queryDate = DateUtil.addDay(now, -1);
 				String dateStr = DateUtil.DateToString(queryDate, "yyyyMMdd");
@@ -73,12 +86,9 @@ public class CmebDeamon {
 					String gprsStr = (String) map.get("gprs");
 
 					insertPD.put("gprs", gprsStr);
-				}
-
-				// 查询余额
-				double balance = cmeb.balancerealsingle(MSISDN);
-				if (balance >= 0) {
-					insertPD.put("balance", balance);
+				} else {
+					logger.info("写入流量短信余额信息，查询GPRS使用量失败");
+					return false;
 				}
 
 				// 查询短信使用量
@@ -90,6 +100,9 @@ public class CmebDeamon {
 					String smsStr = (String) map.get("sms");
 
 					insertPD.put("sms", smsStr);
+				} else {
+					logger.info("写入流量短信余额信息，查询短信使用量失败");
+					return false;
 				}
 
 				insertPD.put("date", dateStr);
