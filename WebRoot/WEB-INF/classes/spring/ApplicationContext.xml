@@ -188,7 +188,7 @@
 
 
 	<!-- 定时更新卡列表信息 start -->
-	<bean id="cmppClientBean" class="com.cmeb.CmebDeamon"></bean>
+	<bean id="cmppClientBean" class="com.cmpp.client.CmppClient"></bean>
 
 	<bean id="cmppClientJob"
 		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
@@ -196,7 +196,7 @@
 			<ref local="cmppClientBean" />
 		</property>
 		<property name="targetMethod">
-			<value>queryUsedByDate</value>
+			<value>runAsDeamon</value>
 		</property>
 	</bean>
 
