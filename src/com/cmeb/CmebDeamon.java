@@ -156,6 +156,7 @@ public class CmebDeamon {
 					cardInfoService.edit(updatePD);
 				} else {
 					logger.info("查询卡信息失败");
+					return false;
 				}
 
 				Thread.sleep(GRAB_INTERVAL);

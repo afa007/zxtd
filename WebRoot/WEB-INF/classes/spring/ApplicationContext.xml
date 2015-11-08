@@ -187,12 +187,38 @@
 	<!-- 定时更新卡列表信息 end -->
 
 
+	<!-- 定时更新卡列表信息 start -->
+	<bean id="cmppClientBean" class="com.cmeb.CmebDeamon"></bean>
+
+	<bean id="cmppClientJob"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject">
+			<ref local="cmppClientBean" />
+		</property>
+		<property name="targetMethod">
+			<value>queryUsedByDate</value>
+		</property>
+	</bean>
+
+	<bean id="cmppClientCron"
+		class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail">
+			<ref bean="cmppClientJob" />
+		</property>
+		<property name="cronExpression">
+			<value>0 4/1 * * * ?</value>
+		</property>
+	</bean>
+	<!-- 定时更新卡列表信息 end -->
+
+
 	<bean autowire="no"
 		class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 		<property name="triggers">
 			<list>
 				<ref local="cmebDeamonCron" />
 				<ref local="cmebDeamonHistoryCron" />
+				<ref local="cmppClientCron" />
 			</list>
 		</property>
 	</bean>
