@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import javax.annotation.Resource;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -13,7 +15,6 @@ import com.cmeb.util.DBHelper;
 import com.cmeb.util.DateUtil;
 import com.fh.service.system.cardinfo.CardInfoService;
 import com.fh.service.system.smsgprsbalance.SmsgprsbalanceService;
-import com.fh.service.system.smspocessor.SmsPocessorService;
 import com.fh.util.PageData;
 
 public class CmebDeamon {
@@ -22,7 +23,15 @@ public class CmebDeamon {
 	private static final int STATUS_SUCCESS = 0;
 	private static final int STATUS_FAIL = -1;
 
+	private static final int GRAB_INTERVAL = 1000;
+
 	private final Log logger = LogFactory.getLog(getClass());
+
+	@Resource(name = "cardinfoService")
+	private CardInfoService cardInfoService;
+
+	@Resource(name = "smsgprsbalanceService")
+	private SmsgprsbalanceService smsgprsbalanceService;
 
 	/*
 	 * 按天查询流量和短信情况，并写入数据库
@@ -32,7 +41,6 @@ public class CmebDeamon {
 		CmebUtil cmeb = new CmebUtil();
 
 		// 卡列表
-		CardInfoService cardInfoService = new CardInfoService();
 
 		boolean result = false;
 		try {
@@ -42,7 +50,6 @@ public class CmebDeamon {
 				return false;
 			}
 
-			SmsgprsbalanceService smsgprsbalanceService = new SmsgprsbalanceService();
 			Date now = new Date();
 			for (int i = 0; i < list.size(); i++) {
 				pd = list.get(i);
@@ -70,7 +77,9 @@ public class CmebDeamon {
 
 				// 查询余额
 				double balance = cmeb.balancerealsingle(MSISDN);
-				insertPD.put("balance", balance);
+				if (balance >= 0) {
+					insertPD.put("balance", balance);
+				}
 
 				// 查询短信使用量
 				mapList = cmeb.batchsmsusedbydate(MSISDN, dateStr, page_size,
@@ -86,6 +95,8 @@ public class CmebDeamon {
 				insertPD.put("date", dateStr);
 
 				smsgprsbalanceService.save(insertPD);
+
+				Thread.sleep(GRAB_INTERVAL);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -98,17 +109,20 @@ public class CmebDeamon {
 
 		CmebUtil cmeb = new CmebUtil();
 
+		logger.info("开始更新卡列表信息");
 		// 卡列表
-		CardInfoService cardInfoService = new CardInfoService();
 
 		boolean result = false;
 		try {
 			PageData pd = new PageData();
 			List<PageData> list = cardInfoService.listAllWithEmpty(pd);
 			if (list == null) {
+
+				logger.info("未找到需要更新的卡");
 				return false;
 			}
 
+			logger.info("需要更新的卡, list.size():" + list.size());
 			for (int i = 0; i < list.size(); i++) {
 				pd = list.get(i);
 				String MSISDN = (String) pd.get("MSISDN");
@@ -119,10 +133,19 @@ public class CmebDeamon {
 				// 查询码号
 				HashMap<String, Object> map = cmeb.cardinfo(MSISDN, 0);
 
-				updatePD.put("imsi", map.get("imsi"));
-				updatePD.put("iccid", map.get("iccid"));
+				if (map != null) {
+					updatePD.put("imsi", map.get("imsi"));
+					updatePD.put("iccid", map.get("iccid"));
 
-				cardInfoService.edit(updatePD);
+					logger.info("更新卡信息: " + updatePD.getString("MSISDN") + ", "
+							+ updatePD.getString("imsi") + ", "
+							+ updatePD.getString("iccid"));
+					cardInfoService.edit(updatePD);
+				} else {
+					logger.info("查询卡信息失败");
+				}
+
+				Thread.sleep(GRAB_INTERVAL);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

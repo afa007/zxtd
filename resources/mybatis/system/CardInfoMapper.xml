@@ -98,7 +98,7 @@
 				a.OWNER,	
 				a.CARDINFO_ID
 		from 
-				TB_CARDINFO a where a.IMSI = null or a.ICCID = null
+				TB_CARDINFO a where isnull(a.IMSI) or isnull(a.ICCID)
 	</select>
 	
 	<!-- 批量删除 -->

@@ -138,7 +138,7 @@
 		value="/ServerIpAddress.properties" /> </bean> -->
 
 	<!-- 定时任务 START -->
-	<!-- pull start -->
+	<!-- 定时更新卡列表信息 start -->
 	<bean id="cmebDeamonBean" class="com.cmeb.CmebDeamon"></bean>
 
 	<bean id="cmebDeamonJob"
@@ -157,10 +157,34 @@
 			<ref bean="cmebDeamonJob" />
 		</property>
 		<property name="cronExpression">
-			<value>0 0 1 * * ?</value>
+			<value>0 4/1 * * * ?</value>
 		</property>
 	</bean>
-	<!-- pull end -->
+	<!-- 定时更新卡列表信息 end -->
+
+	<!-- 定时更新卡列表信息 start -->
+	<bean id="cmebDeamonHistoryBean" class="com.cmeb.CmebDeamon"></bean>
+
+	<bean id="cmebDeamonHistoryJob"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject">
+			<ref local="cmebDeamonHistoryBean" />
+		</property>
+		<property name="targetMethod">
+			<value>queryUsedByDate</value>
+		</property>
+	</bean>
+
+	<bean id="cmebDeamonHistoryCron"
+		class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail">
+			<ref bean="cmebDeamonHistoryJob" />
+		</property>
+		<property name="cronExpression">
+			<value>0 4/1 * * * ?</value>
+		</property>
+	</bean>
+	<!-- 定时更新卡列表信息 end -->
 
 
 	<bean autowire="no"
@@ -168,6 +192,7 @@
 		<property name="triggers">
 			<list>
 				<ref local="cmebDeamonCron" />
+				<ref local="cmebDeamonHistoryCron" />
 			</list>
 		</property>
 	</bean>
