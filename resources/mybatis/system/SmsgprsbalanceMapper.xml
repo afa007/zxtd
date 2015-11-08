@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="SmsgprsbalanceMapper">
+
+
+	<!-- 新增 -->
+	<insert id="save" parameterType="pd">
+		insert into TB_SMSGPRSBALANCE(
+		DATE,
+		SMS,
+		GPRS,
+		BALANCE,
+		MSISDN,
+		OPDATE,
+		SMSGPRSBALANCE_ID
+		) values (
+		#{DATE},
+		#{SMS},
+		#{GPRS},
+		#{BALANCE},
+		#{MSISDN},
+		#{OPDATE},
+		#{SMSGPRSBALANCE_ID}
+		)
+	</insert>
+
+
+	<!-- 删除 -->
+	<delete id="delete" parameterType="pd">
+		delete from TB_SMSGPRSBALANCE
+		where
+		SMSGPRSBALANCE_ID = #{SMSGPRSBALANCE_ID}
+	</delete>
+
+
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update TB_SMSGPRSBALANCE
+		set
+		DATE = #{DATE},
+		SMS = #{SMS},
+		GPRS = #{GPRS},
+		BALANCE = #{BALANCE},
+		MSISDN = #{MSISDN},
+		OPDATE = #{OPDATE},
+		SMSGPRSBALANCE_ID = SMSGPRSBALANCE_ID
+		where
+		SMSGPRSBALANCE_ID = #{SMSGPRSBALANCE_ID}
+	</update>
+
+
+	<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select
+		DATE,
+		SMS,
+		GPRS,
+		BALANCE,
+		MSISDN,
+		OPDATE,
+		SMSGPRSBALANCE_ID
+		from
+		TB_SMSGPRSBALANCE
+		where
+		SMSGPRSBALANCE_ID = #{SMSGPRSBALANCE_ID}
+	</select>
+
+
+	<!-- 列表 -->
+	<select id="datalistPage" parameterType="page" resultType="pd">
+		select
+		a.DATE,
+		a.SMS,
+		a.GPRS,
+		a.BALANCE,
+		a.MSISDN,
+		a.OPDATE,
+		a.SMSGPRSBALANCE_ID
+		from
+		TB_SMSGPRSBALANCE a
+	</select>
+
+	<!-- 列表(全部) -->
+	<select id="listAll" parameterType="pd" resultType="pd">
+		select
+		a.DATE,
+		a.SMS,
+		a.GPRS,
+		a.BALANCE,
+		a.MSISDN,
+		a.OPDATE,
+		a.SMSGPRSBALANCE_ID
+		from
+		TB_SMSGPRSBALANCE a
+		where 1=1
+		<if test="searchkey != null and searchkey != ''">
+			and a.MSISDN like '%#{searchkey}%'
+		</if>
+		<if test="DATE != null and DATE != ''">
+			and a.DATE = '%#{DATE}%'
+		</if>
+	</select>
+
+	<!-- 批量删除 -->
+	<delete id="deleteAll" parameterType="String">
+		delete from TB_SMSGPRSBALANCE
+		where
+		SMSGPRSBALANCE_ID in
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+
+</mapper>

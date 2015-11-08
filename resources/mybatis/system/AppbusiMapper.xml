@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AppbusiMapper">
+
+
+	<!-- 按日期查询SMS短信和GPRS历史使用情况 -->
+	<select id="qryusedbydate" parameterType="pd" resultType="pd">
+		select
+		date,
+		sms,
+		gprs,
+		balance,
+		msisdn
+		from TB_SMSGPRSBALANCE
+		where 1 = 1
+
+		<if test="MSISDN != null and MSISDN != ''"><!-- MSISDN检索 -->
+			and msisdn = #{MSISDN}
+		</if>
+		<if test="DATE_S != null and DATE_S != ''"><!-- 开始时间检索 -->
+			and date &gt;= #{DATE_S}
+		</if>
+		<if test="DATE_E != null and DATE_E != ''"><!-- 结束时间检索 -->
+			and date &lt;= #{DATE_E}
+		</if>
+	</select>
+
+	<!-- 查询码号信息 -->
+	<select id="qrycardinfo" parameterType="pd" resultType="pd">
+		select 
+			msisdn,
+			imsi,
+			iccid,
+			status
+		from TB_CARDINFO
+		where 1=1
+		<if test="CARD_INFO != null and CARD_INFO != ''">
+			<if test="TYPE != null and TYPE == 0">
+				and msisdn = #{CARD_INFO}
+			</if>
+			<if test="TYPE != null and TYPE == 1">
+				and imsi = #{CARD_INFO}
+			</if>
+			<if test="TYPE != null and TYPE == 2">
+				and iccid = #{CARD_INFO}
+			</if>
+		</if>
+	</select>
+
+</mapper>

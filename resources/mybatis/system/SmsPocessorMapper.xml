@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="SmsPocessorMapper">
+	
+	
+	<!-- 新增-->
+	<insert id="save" parameterType="pd">
+		insert into TB_SMSPOCESSOR(
+			MSISDN,	
+			TYPE,	
+			CONTENT,	
+			USERID,	
+			CREATETIME,	
+			STATUS,	
+			SMSPOCESSOR_ID
+		) values (
+			#{MSISDN},	
+			#{TYPE},	
+			#{CONTENT},	
+			#{USERID},	
+			#{CREATETIME},	
+			#{STATUS},	
+			#{SMSPOCESSOR_ID}
+		)
+	</insert>
+	
+	
+	<!-- 删除-->
+	<delete id="delete" parameterType="pd">
+		delete from TB_SMSPOCESSOR
+		where 
+			SMSPOCESSOR_ID = #{SMSPOCESSOR_ID}
+	</delete>
+	
+	
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update  TB_SMSPOCESSOR
+			set 
+				MSISDN = #{MSISDN},
+				TYPE = #{TYPE},
+				CONTENT = #{CONTENT},
+				USERID = #{USERID},
+				CREATETIME = #{CREATETIME},
+				STATUS = #{STATUS},
+			SMSPOCESSOR_ID = SMSPOCESSOR_ID
+			where 
+				SMSPOCESSOR_ID = #{SMSPOCESSOR_ID}
+	</update>
+	
+	
+	
+	<!-- 修改 -->
+	<update id="editStatus" parameterType="pd">
+		update  TB_SMSPOCESSOR
+			set 
+				STATUS = #{STATUS},
+			where 
+				SMSPOCESSOR_ID = #{SMSPOCESSOR_ID}
+	</update>
+	
+	
+	
+	<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select 
+			MSISDN,	
+			TYPE,	
+			CONTENT,	
+			USERID,	
+			CREATETIME,	
+			STATUS,	
+			SMSPOCESSOR_ID
+		from 
+			TB_SMSPOCESSOR
+		where 
+			SMSPOCESSOR_ID = #{SMSPOCESSOR_ID}
+	</select>
+	
+	
+	<!-- 列表 -->
+	<select id="datalistPage" parameterType="page" resultType="pd">
+		select
+				a.MSISDN,	
+				a.TYPE,	
+				a.CONTENT,	
+				a.USERID,	
+				a.CREATETIME,	
+				a.STATUS,	
+				a.SMSPOCESSOR_ID
+		from 
+				TB_SMSPOCESSOR a
+	</select>
+	
+	<!-- 列表(全部) -->
+	<select id="listAll" parameterType="pd" resultType="pd">
+		select
+				a.MSISDN,	
+				a.TYPE,	
+				a.CONTENT,	
+				a.USERID,	
+				a.CREATETIME,	
+				a.STATUS,	
+				a.SMSPOCESSOR_ID
+		from 
+				TB_SMSPOCESSOR a
+	</select>
+	
+	<!-- 批量删除 -->
+	<delete id="deleteAll" parameterType="String">
+		delete from TB_SMSPOCESSOR
+		where 
+			SMSPOCESSOR_ID in
+		<foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                 #{item}
+		</foreach>
+	</delete>
+	
+</mapper>

@@ -1,0 +1,4 @@
+#Fri Oct 30 17:23:31 CST 2015
+eclipse.preferences.version=1
+validator.Checked=WebRoot/static/js/jquery.sparkline.min.js,WebRoot/static/js/prettify.js,WebRoot/WEB-INF/jsp,WebRoot/1,WebRoot/static/js/jquery-ui-1.10.2.custom.min.js,WebRoot/plugins/uploadify/jquery-1.5.1.min.js,WebRoot/static/UI_new,WebRoot/static/js/jquery-1.5.1.min.js,WebRoot/plugins/ueditor/ueditor.all.min.js,WebRoot/plugins/ueditor/ueditor.all.js
+validator.Unchecked=
