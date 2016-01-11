@@ -30,6 +30,7 @@
 		<property name="locations">
 			<list>
 				<value>/WEB-INF/classes/dbconfig.properties</value>
+				<value>/WEB-INF/classes/ServerIPAddress.properties</value>
 			</list>
 		</property>
 	</bean>
@@ -147,7 +148,7 @@
 			<ref local="cmebDeamonBean" />
 		</property>
 		<property name="targetMethod">
-			<value>queryCardInfo</value>
+			<value>${quartz.cmeb.card.method}</value>
 		</property>
 	</bean>
 
@@ -157,12 +158,12 @@
 			<ref bean="cmebDeamonJob" />
 		</property>
 		<property name="cronExpression">
-			<value>0 4/1 * * * ?</value>
+			<value>${quartz.cmeb.card.time}</value>
 		</property>
 	</bean>
 	<!-- 定时更新卡列表信息 end -->
 
-	<!-- 定时更新卡列表信息 start -->
+	<!-- 定时查询流量短信余额信息 start -->
 	<bean id="cmebDeamonHistoryBean" class="com.cmeb.CmebDeamon"></bean>
 
 	<bean id="cmebDeamonHistoryJob"
@@ -171,7 +172,7 @@
 			<ref local="cmebDeamonHistoryBean" />
 		</property>
 		<property name="targetMethod">
-			<value>queryUsedByDate</value>
+			<value>${quartz.cmeb.query.method}</value>
 		</property>
 	</bean>
 
@@ -181,13 +182,13 @@
 			<ref bean="cmebDeamonHistoryJob" />
 		</property>
 		<property name="cronExpression">
-			<value>0 4/1 * * * ?</value>
+			<value>${quartz.cmeb.query.time}</value>
 		</property>
 	</bean>
-	<!-- 定时更新卡列表信息 end -->
+	<!-- 定时查询流量短信余额信息 end -->
 
 
-	<!-- 定时更新卡列表信息 start -->
+	<!-- 定时启动CMPP客户端 start -->
 	<bean id="cmppClientBean" class="com.cmpp.client.CmppClient"></bean>
 
 	<bean id="cmppClientJob"
@@ -196,7 +197,7 @@
 			<ref local="cmppClientBean" />
 		</property>
 		<property name="targetMethod">
-			<value>runAsDeamon</value>
+			<value>${quartz.cmpp.method}</value>
 		</property>
 	</bean>
 
@@ -206,10 +207,10 @@
 			<ref bean="cmppClientJob" />
 		</property>
 		<property name="cronExpression">
-			<value>0 4/1 * * * ?</value>
+			<value>${quartz.cmpp.time}</value>
 		</property>
 	</bean>
-	<!-- 定时更新卡列表信息 end -->
+	<!-- 定时启动CMPP客户端 end -->
 
 
 	<bean autowire="no"

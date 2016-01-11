@@ -29,7 +29,7 @@
 				id="loginForm">
 				<div class="control-group normal_text">
 					<h3>
-						<img src="static/login/logo.png" alt="Logo" />
+						<img src="static/login/logo_wxt.png" alt="Logo" />
 					</h3>
 				</div>
 				<div class="control-group">
@@ -87,7 +87,7 @@
 
 			<div class="controls">
 				<div class="main_input_box">
-					<font color="white"><span id="nameerr">Copyright © 北京知讯通达有限公司
+					<font color="white"><span id="nameerr">Copyright © 北京知讯通达通信技术有限公司
 							2015</span></font>
 				</div>
 			</div>
@@ -115,7 +115,7 @@
 				
 				var loginname = $("#loginname").val();
 				var password = $("#password").val();
-				var code = "qq313596790fh"+loginname+",fh,"+password+"QQ978336446fh"+",fh,"+$("#code").val();
+				var code = "qq290119597fh"+loginname+",fh,"+password+"QQ290119597fh"+",fh,"+$("#code").val();
 				$.ajax({
 					type: "POST",
 					url: 'login_login',

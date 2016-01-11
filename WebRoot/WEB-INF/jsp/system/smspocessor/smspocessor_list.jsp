@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
+<%@page import="com.fh.controller.system.tools.ZxtdConstant" %>
 <%
 	String path = request.getContextPath();
 	String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+path+"/";
@@ -28,12 +29,20 @@
 				<tr>
 					<td>
 						<span class="input-icon">
-							<input autocomplete="off" id="nav-search-input" type="text" name="field1" value="" placeholder="这里输入关键词" />
+							<input autocomplete="off" id="nav-search-input" type="text" name="key" value="${pd.key}" placeholder="请输入手机号或内容或用户名" />
 							<i id="nav-search-icon" class="icon-search"></i>
 						</span>
 					</td>
-					<td><input class="span10 date-picker" name="lastLoginStart" id="lastLoginStart" value="${pd.lastLoginStart}" type="text" data-date-format="yyyy-mm-dd" readonly="readonly" style="width:88px;" placeholder="开始日期"/></td>
-					<td><input class="span10 date-picker" name="lastLoginEnd" id="lastLoginEnd" value="${pd.lastLoginEnd}" type="text" data-date-format="yyyy-mm-dd" readonly="readonly" style="width:88px;" placeholder="结束日期"/></td>
+					<td style="vertical-align:top;"> 
+					 	<select class="chzn-select" name="typeid" id="typeid" data-placeholder="请选择类型" style="vertical-align:top;width: 120px;">
+							<option value="-1">短信类型</option>
+							<option value="<%=ZxtdConstant.SMS_TYPE_SEND%>"><%=ZxtdConstant.SMS_TYPE_SEND_DESC%></option>
+							<option value="<%=ZxtdConstant.SMS_TYPE_RECV%>"><%=ZxtdConstant.SMS_TYPE_RECV_DESC%></option>
+					  	</select>
+					</td>
+					<td><input class="span10 date-picker" name="dateStart" id="dateStart" value="${pd.dateStart}" type="text" data-date-format="yyyy-mm-dd" readonly="readonly" style="width:88px;" placeholder="开始日期"/></td>
+					<td><input class="span10 date-picker" name="dateEnd" id="dateEnd" value="${pd.dateEnd}" type="text" data-date-format="yyyy-mm-dd" readonly="readonly" style="width:88px;" placeholder="结束日期"/></td>
+					<!-- 
 					<td style="vertical-align:top;"> 
 					 	<select class="chzn-select" name="field2" id="field2" data-placeholder="请选择" style="vertical-align:top;width: 120px;">
 							<option value=""></option>
@@ -42,6 +51,7 @@
 							<option value="">2</option>
 					  	</select>
 					</td>
+					 -->
 					<td style="vertical-align:top;"><button class="btn btn-mini btn-light" onclick="search();"  title="检索"><i id="nav-search-icon" class="icon-search"></i></button></td>
 					<c:if test="${QX.cha == 1 }">
 					<td style="vertical-align:top;"><a class="btn btn-mini btn-light" onclick="toExcel();" title="导出到EXCEL"><i id="nav-search-icon" class="icon-download-alt"></i></a></td>
@@ -65,7 +75,9 @@
 						<th class="center">用户名</th>
 						<th class="center">创建时间</th>
 						<th class="center">状态</th>
+						<!-- 
 						<th class="center">操作</th>
+						-->
 					</tr>
 				</thead>
 										
@@ -82,11 +94,26 @@
 								</td>
 								<td class='center' style="width: 30px;">${vs.index+1}</td>
 										<td>${var.MSISDN}</td>
-										<td>${var.TYPE}</td>
+										<c:if test="${var.TYPE == 1 }">
+										<td><%=ZxtdConstant.SMS_TYPE_SEND_DESC %></td>
+										</c:if>
+										<c:if test="${var.TYPE == 2 }">
+										<td><%=ZxtdConstant.SMS_TYPE_RECV_DESC %></td>
+										</c:if>
 										<td>${var.CONTENT}</td>
 										<td>${var.USERID}</td>
 										<td>${var.CREATETIME}</td>
-										<td>${var.STATUS}</td>
+										<c:if test="${var.STATUS == 0 }">
+										<td><%=ZxtdConstant.SMS_STATUS_TOSEND_DESC %></td>
+										</c:if>
+										<c:if test="${var.STATUS == 1 }">
+										<td><%=ZxtdConstant.SMS_STATUS_SENDED_DESC %></td>
+										</c:if>
+										<c:if test="${var.STATUS == 2 }">
+										<td><%=ZxtdConstant.SMS_STATUS_FEEDBACK_DESC %></td>
+										</c:if>
+										
+								<!-- 
 								<td style="width: 30px;" class="center">
 									<div class='hidden-phone visible-desktop btn-group'>
 									
@@ -106,6 +133,7 @@
 										</div>
 									</div>
 								</td>
+								 -->
 							</tr>
 						
 						</c:forEach>
@@ -131,12 +159,16 @@
 		<table style="width:100%;">
 			<tr>
 				<td style="vertical-align:top;">
+				
+		<!-- 注释掉
 					<c:if test="${QX.add == 1 }">
 					<a class="btn btn-small btn-success" onclick="add();">新增</a>
 					</c:if>
 					<c:if test="${QX.del == 1 }">
 					<a class="btn btn-small btn-danger" onclick="makeAll('确定要删除选中的数据吗?');" title="批量删除" ><i class='icon-trash'></i></a>
 					</c:if>
+					
+		 -->
 				</td>
 				<td style="vertical-align:top;"><div class="pagination" style="float: right;padding-top: 0px;margin-top: 0px;">${page.pageStr}</div></td>
 			</tr>

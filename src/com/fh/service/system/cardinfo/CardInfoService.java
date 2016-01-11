@@ -38,6 +38,15 @@ public class CardInfoService {
 		dao.update("CardInfoMapper.edit", pd);
 	}
 	
+
+	/*
+	* 守护程序修改
+	*/
+	public void editByDeamon(PageData pd)throws Exception{
+		dao.update("CardInfoMapper.editByDeamon", pd);
+	}
+	
+	
 	/*
 	*列表
 	*/
@@ -65,6 +74,20 @@ public class CardInfoService {
 	public PageData findById(PageData pd)throws Exception{
 		return (PageData)dao.findForObject("CardInfoMapper.findById", pd);
 	}
+
+	/*
+	* 通过id获取数据
+	*/
+	public PageData findByIdMSISDN(PageData pd)throws Exception{
+		return (PageData)dao.findForObject("CardInfoMapper.findByIdMSISDN", pd);
+	}
+	
+	/*
+	* 通过id和owner获取数据
+	*/
+	public PageData findByIdAndOwner(PageData pd)throws Exception{
+		return (PageData)dao.findForObject("CardInfoMapper.findByIdAndOwner", pd);
+	}
 	
 	/*
 	* 批量删除
@@ -73,5 +96,19 @@ public class CardInfoService {
 		dao.delete("CardInfoMapper.deleteAll", ArrayDATA_IDS);
 	}
 	
+	/*
+	 * 更新权限
+	 * 
+	 * */
+	public int updateAuthByCardList(PageData pd) throws Exception{
+		return (Integer) dao.update("CardInfoMapper.updateAuthByCardList", pd);
+	}
+	
+	/*
+	* 更新权限前查询，根据号段，查询条数
+	*/
+	public int getToUpdateAuthCardNum(PageData pd)throws Exception{
+		return (Integer)dao.findForObject("CardInfoMapper.getToUpdateAuthCardNum", pd);
+	}
 }
 

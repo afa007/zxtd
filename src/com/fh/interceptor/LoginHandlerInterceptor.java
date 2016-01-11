@@ -15,7 +15,7 @@ import com.fh.util.Jurisdiction;
  * 
 * 类名称：LoginHandlerInterceptor.java
 * 类描述： 
-* @author FH
+* @author ZXTD
 * 作者单位： 
 * 联系方式：
 * 创建时间：2015年1月1日

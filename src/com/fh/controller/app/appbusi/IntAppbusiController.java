@@ -1,5 +1,6 @@
 package com.fh.controller.app.appbusi;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,9 +13,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.cmeb.util.CmebUtil;
 import com.fh.controller.base.BaseController;
+import com.fh.controller.system.tools.ZxtdConstant;
 import com.fh.service.system.appbusi.AppbusiService;
+import com.fh.service.system.smspocessor.SmsPocessorService;
 import com.fh.util.AppUtil;
 import com.fh.util.PageData;
+import com.google.gson.Gson;
 
 /**
  * 能力查询-接口类
@@ -28,6 +32,11 @@ public class IntAppbusiController extends BaseController {
 	@Resource(name = "appbusiService")
 	private AppbusiService appbusiService;
 
+	@Resource(name = "smspocessorService")
+	private SmsPocessorService smspocessorService;
+
+	private Gson gson = new Gson();
+
 	/**
 	 * APP查询汇总信息：余额、当月短信使用情况、当月流量使用情况、开关机、卡的用户状态、GPRS在线信息
 	 */
@@ -35,11 +44,11 @@ public class IntAppbusiController extends BaseController {
 	@ResponseBody
 	public Object queryInfo() {
 		logBefore(logger, "APP查询汇总信息");
-		
+
 		Map<String, Object> map = new HashMap<String, Object>();
 		PageData pd = new PageData();
 		pd = this.getPageData();
-		
+
 		String result = "00";
 		CmebUtil cmeb = new CmebUtil();
 
@@ -55,22 +64,22 @@ public class IntAppbusiController extends BaseController {
 
 			// 当月gprs使用量
 			pd.put("gprs", cmeb.gprsusedinfosingle(msisdn));
-			
+
 			// 开关机状态
 			pd.put("onoff", cmeb.onandoffrealsingle(msisdn));
-			
+
 			// 卡的用户状态
 			pd.put("userstatus", cmeb.userstatusrealsingle(msisdn));
-			
+
 			// GPRS在线信息
 			HashMap<String, Object> gprsMap = cmeb.gprsrealsingle(msisdn);
-			if(gprsMap != null){
+			if (gprsMap != null) {
 				pd.put("gprsstatus", gprsMap.get("gprsstatus"));
 				pd.put("ip", gprsMap.get("ip"));
 				pd.put("apn", gprsMap.get("apn"));
 				pd.put("rat", gprsMap.get("rat"));
 			}
-			
+
 			map.put("pd", pd);
 
 		} catch (Exception e) {
@@ -169,6 +178,99 @@ public class IntAppbusiController extends BaseController {
 		return AppUtil.returnObject(new PageData(), map);
 	}
 
+	/**
+	 * APP发送短信
+	 * 
+	 * MSISDN，CONTENT，USERID
+	 */
+	@RequestMapping(value = "/sendmsg")
+	@ResponseBody
+	public Object sendmsg() {
+		logBefore(logger, "APP发送短信");
+		Map<String, Object> map = new HashMap<String, Object>();
+		PageData pd = new PageData();
+		pd = this.getPageData();
+		String result = "00";
+
+		// MSISDN, CONTENT, USERID
+		pd.put("SMSPOCESSOR_ID", this.get32UUID());
+		pd.put("TYPE", ZxtdConstant.SMS_TYPE_SEND);
+		pd.put("CREATETIME", new Date());
+		pd.put("STATUS", "0");
+
+		gson.toJson("pd:" + pd);
+		try {
+			smspocessorService.save(pd);
+			result = "00";
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			result = "01"; // 交易失败
+		} finally {
+			map.put("result", result);
+			logAfter(logger);
+		}
+
+		return AppUtil.returnObject(new PageData(), map);
+	}
+
+	/**
+	 * APP短信列表
+	 * 
+	 * 参数： USERID 用户ID, DATE_S 开始时间，DATE_E 结束时间
+	 */
+	@RequestMapping(value = "/getmsg")
+	@ResponseBody
+	public Object getmsg() {
+		logBefore(logger, "APP短信列表");
+		Map<String, Object> map = new HashMap<String, Object>();
+		PageData pd = new PageData();
+		pd = this.getPageData();
+
+		String result = "00";
+
+		gson.toJson("pd:" + pd);
+		List<PageData> list = null;
+		try {
+			PageData newPD = pd;
+			newPD.remove("PAGE_SIZE");
+			newPD.remove("PAGE_NUM");
+			Long cnt = smspocessorService.listAllCntByPage(newPD);
+			if (cnt >= 0) {
+				if (pd.get("PAGE_SIZE") == null
+						|| "".equals(pd.get("PAGE_SIZE"))) {
+					pd.put("PAGE_SIZE", 10);
+				}
+				if (pd.get("PAGE_NUM") == null || "".equals(pd.get("PAGE_NUM"))) {
+					pd.put("PAGE_NUM", 1);
+				}
+				
+				pd.put("PAGE_START", ((Integer)pd.get("PAGE_NUM") - 1)*(Integer)pd.get("PAGE_SIZE"));
+
+				list = smspocessorService.listAllByPage(pd);
+				if (list != null && list.size() > 0) {
+					result = "00";
+				} else {
+					result = "01";
+				}
+			} else {
+				result = "01";
+			}
+
+			// 总的记录数
+			map.put("cnt", cnt);
+
+			map.put("result", result);
+			map.put("list", list);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			result = "01"; // 交易失败
+		} finally {
+			map.put("result", result);
+			logAfter(logger);
+		}
+
+		return AppUtil.returnObject(new PageData(), map);
+	}
 	// 集团用户数查询
 	// 短信状态重置
 }

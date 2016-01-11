@@ -38,10 +38,7 @@ import com.fh.util.Tools;
  * 
 * 类名称：PagePlugin.java
 * 类描述： 
-* @author FH
-* 作者单位： 
-* 联系方式：qq313596790
-* 创建时间：2014年7月1日
+* @author ZXTD
 * @version 1.0
  */
 @Intercepts({@Signature(type=StatementHandler.class,method="prepare",args={Connection.class})})

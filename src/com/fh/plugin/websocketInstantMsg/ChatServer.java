@@ -16,8 +16,8 @@ import org.java_websocket.server.WebSocketServer;
 
 /**
  * 即时通讯
- * @author FH
- * QQ 313596790
+ * @author ZXTD
+ * 
  * 2015-5-16
  */
 public class ChatServer extends WebSocketServer{
@@ -53,9 +53,9 @@ public class ChatServer extends WebSocketServer{
 	@Override
 	public void onMessage(WebSocket conn, String message){
 		message = message.toString();
-		if(null != message && message.startsWith("FHadminqq313596790")){
-			this.userjoin(message.replaceFirst("FHadminqq313596790", ""),conn);
-		}if(null != message && message.startsWith("LeaveFHadminqq313596790")){
+		if(null != message && message.startsWith("ZXTD290119597")){
+			this.userjoin(message.replaceFirst("ZXTD290119597", ""),conn);
+		}if(null != message && message.startsWith("LeaveZXTD290119597")){
 			this.userLeave(conn);
 		}if(null != message && message.contains("fhadmin886")){
 			String toUser = message.substring(message.indexOf("fhadmin886")+10, message.indexOf("fhfhadmin888"));

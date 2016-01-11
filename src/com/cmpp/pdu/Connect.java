@@ -10,6 +10,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -59,11 +60,12 @@ public class Connect extends Request {
 		buffer.appendString(getClientId(), 6);
 		buffer.appendBytes(getAuthClient(), 16);
 		buffer.appendByte(getVersion());
-		buffer.appendInt((int) getTimeStamp());
+		buffer.appendInt(getTimeStamp());
 		return buffer;
 	}
 
 	public byte[] genAuthClient() {
+		/*
 		byte[] result = new byte[16];
 		try {
 			ByteBuffer buffer = new ByteBuffer();
@@ -79,17 +81,39 @@ public class Connect extends Request {
 
 			Date date = new Date();
 			Format formatter = new SimpleDateFormat("MMddHHmmss");
-			int timeStamp = Integer.parseInt(formatter.format(date), 10);
-			String stimeStamp = String.format("%10d", timeStamp);
-			buffer.appendString(stimeStamp, stimeStamp.length());
+			
+			String stimeStamp = formatter.format(date);
+			logger.error("stimeStamp: " +stimeStamp);
+			
+			buffer.appendInt(Integer.valueOf(stimeStamp));
 			
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			result = md.digest(buffer.getBuffer());
-			
 		} catch (Exception ex) {
 			logger.error("Failed genAuthClient!");
 		}
 		return result;
+		*/
+		SimpleDateFormat formatter = new SimpleDateFormat("MMddHHmmss");
+        String time = formatter.format(new Date());
+        this.setTimeStamp(Integer.parseInt(time));
+        try {
+			authClient = MessageDigest.getInstance("MD5").digest(
+			        (clientId + "\0\0\0\0\0\0\0\0\0" + sharedSecret + time).getBytes());
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return authClient;
+	}
+	
+	public static byte[] intToByteArray(int a) {  
+	    return new byte[] {  
+	        (byte) ((a >> 24) & 0xFF),  
+	        (byte) ((a >> 16) & 0xFF),     
+	        (byte) ((a >> 8) & 0xFF),     
+	        (byte) (a & 0xFF)  
+	    };  
 	}
 
 	public static String getHexDump(byte[] data) {
@@ -165,7 +189,7 @@ public class Connect extends Request {
 	public int genTimeStamp() {
 		Date date = new Date();
 		Format formatter = new SimpleDateFormat("MMddHHmmss");
-		int timeStamp = Integer.parseInt(formatter.format(date), 10);
+		int timeStamp = Integer.valueOf(formatter.format(date));
 		return timeStamp;
 	}
 
@@ -185,7 +209,7 @@ public class Connect extends Request {
 		this.clientId = clientId;
 	}
 
-	public long getTimeStamp() {
+	public int getTimeStamp() {
 		return timeStamp;
 	}
 

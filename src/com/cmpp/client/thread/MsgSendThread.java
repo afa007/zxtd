@@ -1,5 +1,7 @@
 package com.cmpp.client.thread;
 
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -10,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.cmeb.MmsSend;
+import com.cmeb.SmsPocessorBean;
 import com.cmeb.util.DBHelper;
 import com.cmpp.client.CmppClientIoHandler;
 import com.cmpp.pdu.Submit;
@@ -26,8 +29,6 @@ public class MsgSendThread extends Thread {
 	private static final Logger logger = LoggerFactory
 			.getLogger(MsgSendThread.class);
 
-	private static final long send_Interval = 30000;
-
 	public static PropertyUtil pu = new PropertyUtil("ServerIPAddress");
 
 	private boolean isRunning = false;
@@ -43,9 +44,17 @@ public class MsgSendThread extends Thread {
 			while ((session.isConnected())
 					&& (CmppClientIoHandler.Connect == true)) {
 
-				doSubmitFromMQ();
+				// doSubmitFromMQ();
+				doSubmitFromDB();
 				try {
-					Thread.sleep(send_Interval);
+
+					// 毫秒
+					String sSendInterval = pu.getValue("send.interval");
+					if (sSendInterval != null && !"".equals(sSendInterval)) {
+						
+						long sendInterval = Long.valueOf(sSendInterval);
+						Thread.sleep(sendInterval);
+					}
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -112,59 +121,95 @@ public class MsgSendThread extends Thread {
 	 */
 	private void doSubmitFromMQ() {
 
-		SmsPocessorService smspocessorService = new SmsPocessorService();
-		while (isRunning) {
-			try {
-				String SMSPOCESSOR_ID = null;
-				PageData pd = new PageData();
-				if ((SMSPOCESSOR_ID = (String) MsgQUtil.quene.poll(1,
-						TimeUnit.SECONDS)) != null) {
-					pd.put("SMSPOCESSOR_ID", SMSPOCESSOR_ID);
+		DBHelper dbHelper = new DBHelper();
+		try {
+			String SMSPOCESSOR_ID = null;
+			Object objMsg = MsgQUtil.quene.poll(1, TimeUnit.SECONDS);
+			if (objMsg != null && !"".equals(objMsg)) {
+				SMSPOCESSOR_ID = (String) objMsg;
 
-					pd = smspocessorService.findById(pd);
-					if (pd != null) {
-						Submit submit = new Submit();
+				logger.info("正在处理队列中的消息，SMSPOCESSOR_ID:" + SMSPOCESSOR_ID);
 
-						// Messege ID
-						byte[] msgid = Tools.GetMsgid();
-						submit.setMsgId(msgid);
-						// Service ID
-						submit.setServiceId(pu
-								.getValue("CmppGw.client.serviceID"));
-						// 源号码
-						submit.setSrcId(pu.getValue("CmppGw.client.srcid"));
-						// SP_ID
-						submit.setMsgSrc(pu.getValue("CmppGw.server.clientId"));
-						// 目的号码个数
-						submit.setDestTermIdCount((byte) 1);
+				SmsPocessorBean bean = dbHelper.findSmsById(SMSPOCESSOR_ID);
 
-						// 接收消息的MSISDN号码
-						submit.setDestTermId(new String[] { pd
-								.getString("PHONE") });
+				if (bean != null) {
+					Submit submit = new Submit();
 
-						// 发送消息的序列号，根据这个序列号，可以从应答报文获取区分出来这条消息
-						submit.setSequenceNumber((Integer) pd.get("SEQ_ID"));
+					// Messege ID
+					byte[] msgid = Tools.GetMsgid();
+					submit.setMsgId(msgid);
 
-						// 短信内容
-						ShortMessage sm = new ShortMessage();
-						String msg = pd.getString("CONTENT");
-						// 中文GB编码
-						sm.setMessage(msg.getBytes(), (byte) 15);
+					logger.info("消息队列，开始发送短信：msgid : " + msgid);
 
-						logger.info("submit req发送短信，SEQ_ID:" + pd.get("SEQ_ID")
-								+ "内容为: " + submit.getData().getHexDump());
+					// Service ID
+					submit.setServiceId(pu.getValue("CmppGw.client.serviceID"));
+					// 源号码
+					submit.setSrcId(pu.getValue("CmppGw.client.srcid"));
+					// SP_ID
+					submit.setMsgSrc(pu.getValue("CmppGw.server.clientId"));
+					// 目的号码个数
+					submit.setDestTermIdCount((byte) 1);
 
-						submit.setSm(sm);
-						session.write(submit);
-					}
+					// 接收消息的MSISDN号码
+					submit.setDestTermId(new String[] { bean.getMSISDN() });
+
+					// 发送消息的序列号，根据这个序列号，可以从应答报文获取区分出来这条消息
+					submit.setSequenceNumber(bean.getSEQ_ID());
+
+					// 是否需要短信汇报
+					submit.setNeedReport((byte) 0);
+
+					// 短信内容
+					ShortMessage sm = new ShortMessage();
+					String msg = bean.getCONTENT();
+
+					sm.setMessage(
+							new String(msg.getBytes("UTF-8"), "US-ASCII"),
+							(byte) 0);
+					sm.setMsgFormat((byte) 1);
+
+					logger.info("消息队列，submit req发送短信，SEQ_ID:"
+							+ bean.getSEQ_ID() + "内容为: "
+							+ submit.getData().getHexDump());
+
+					submit.setSm(sm);
+
+					logger.info("消息队列，submit req发送短信:" + submit.dump());
+
+					session.write(submit);
+
+					HashMap<String, Object> map = new HashMap<String, Object>();
+					map.put("SEQ_ID", bean.getSEQ_ID());
+					// 更新短信状态为发送成功
+					map.put("STATUS", "1");
+					logger.info("更新短信发送状态为正在发送，SEQ_ID:" + map.get("SEQ_ID"));
+					dbHelper.updateMmsSendFlag(map);
+
+				} else {
+					logger.info("消息队列，读取短信失败，将要重试！");
 				}
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} else {
+				logger.info("消息队列，没有需要发送的短信");
 			}
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		try {
+			// 毫秒
+			String sSendInterval = pu.getValue("send.interval");
+			if (sSendInterval != null && !"".equals(sSendInterval)) {
+				
+				long sendInterval = Long.valueOf(sSendInterval);
+				Thread.sleep(sendInterval);
+			}
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 	}
@@ -175,59 +220,69 @@ public class MsgSendThread extends Thread {
 	private void doSubmitFromDB() {
 
 		HashMap<String, Object> getMap = new HashMap<String, Object>();
-		getMap.put("flag", 0);
+		getMap.put("status", 0);
 
 		DBHelper dbHelper = new DBHelper();
-		List<MmsSend> list = dbHelper.getMmsSendList(getMap);
+		ArrayList<SmsPocessorBean> list = dbHelper.getMmsSendList(getMap);
 
-		logger.info("list : " + list);
+		logger.info("数据库，list.size : " + list.size());
 		if (list != null && list.size() > 0) {
 			for (int i = 0; i < list.size(); i++) {
 
-				MmsSend mmsSend = list.get(i);
+				SmsPocessorBean bean = list.get(i);
 
 				Submit submit = new Submit();
 
+				// Messege ID
 				byte[] msgid = Tools.GetMsgid();
-
 				submit.setMsgId(msgid);
-				// pktotal, pknumber 默认都是1
 
-				submit.setServiceId("abc");
+				logger.info("数据库，开始发送短信：msgid : " + msgid);
 
+				// Service ID
+				submit.setServiceId(pu.getValue("CmppGw.client.serviceID"));
 				// 源号码
-				submit.setSrcId(pu.getValue("CmppGw.client.src"));
-				submit.setMsgSrc("1016");
+				submit.setSrcId(pu.getValue("CmppGw.client.srcid"));
+				// SP_ID
+				submit.setMsgSrc(pu.getValue("CmppGw.server.clientId"));
+				// 目的号码个数
 				submit.setDestTermIdCount((byte) 1);
 
 				// 接收消息的MSISDN号码
-				submit.setDestTermId(new String[] { mmsSend.getMobile() });
-				submit.setFeeTermId("");
-				submit.assignSequenceNumber();
+				submit.setDestTermId(new String[] { bean.getMSISDN() });
+
+				// 发送消息的序列号，根据这个序列号，可以从应答报文获取区分出来这条消息
+				submit.setSequenceNumber(bean.getSEQ_ID());
+
+				// 是否需要短信汇报
+				submit.setNeedReport((byte) 1);
 
 				// 短信内容
 				ShortMessage sm = new ShortMessage();
-				String msg = mmsSend.getContent();
-				sm.setMessage(msg.getBytes(), (byte) 15);
-				submit.setSm(sm);
+				String msg = bean.getCONTENT();
 
-				submit.setLinkId("12345678901234567890");
-
-				session.write(submit);
+				try {
+					sm.setMessage(
+							new String(msg.getBytes("UTF-8"), "US-ASCII"),
+							(byte) 0);
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
+				sm.setMsgFormat((byte) 0);
 
 				/*
-				 * 更新短信发送表的状态为1已发送
+				 * try { sm.setMessage(msg.getBytes("UTF-8"), (byte) 4); } catch
+				 * (UnsupportedEncodingException e) { e.printStackTrace(); }
+				 * sm.setMsgFormat((byte) 4);
 				 */
-				HashMap<String, Object> updateMap = new HashMap<String, Object>();
-				updateMap.put("id", mmsSend.getId());
-				updateMap.put("flag", 1);
-				if (dbHelper.updateMmsSendFlag(updateMap) < 0) {
-					logger.error("更新短信发送状态失败，mmsSend id: " + mmsSend.getId());
-				}
+				logger.info("数据库，submit req发送短信，SEQ_ID:" + bean.getSEQ_ID()
+						+ "内容为: " + submit.getData().getHexDump());
+
+				submit.setSm(sm);
+				session.write(submit);
 			}
 		} else {
-
-			logger.info("no pending msg to send");
+			logger.info("数据库，没有待发送的短信！");
 		}
 	}
 }

@@ -77,6 +77,7 @@ public class UserService {
 	public void deleteAllU(String[] USER_IDS)throws Exception{
 		dao.delete("UserXMapper.deleteAllU", USER_IDS);
 	}
+	
 	/*
 	*用户列表(用户组)
 	*/
@@ -90,6 +91,22 @@ public class UserService {
 	public List<PageData> listAllUser(PageData pd)throws Exception{
 		return (List<PageData>) dao.findForList("UserXMapper.listAllUser", pd);
 	}
+	
+
+	/*
+	*用户列表(用户组，二级用户)
+	*/
+	public List<PageData> listPdPageUserSecondGroup(Page page)throws Exception{
+		return (List<PageData>) dao.findForList("UserXMapper.userlistPageSecondGroup", page);
+	}
+	
+	/*
+	*用户列表(全部，二级用户)
+	*/
+	public List<PageData> listAllUserSecondGroup(PageData pd)throws Exception{
+		return (List<PageData>) dao.findForList("UserXMapper.listAllUserSecondGroup", pd);
+	}
+	
 	
 	/*
 	*用户列表(供应商用户)

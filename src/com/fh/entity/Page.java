@@ -15,8 +15,6 @@ public class Page {
 	private String pageStr;		//最终页面显示的底部翻页导航，详细见：getPageStr();
 	private PageData pd = new PageData();
 	
-
-	
 	public Page(){
 		try {
 			this.showCount = Integer.parseInt(Tools.readTxtFile(Const.PAGE));

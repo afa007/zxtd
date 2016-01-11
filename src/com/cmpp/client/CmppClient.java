@@ -17,6 +17,8 @@ public class CmppClient implements Runnable {
 
 	public static PropertyUtil pu = new PropertyUtil("ServerIPAddress");
 
+	public static Boolean IsConnected = false;
+
 	private static final Logger logger = LoggerFactory
 			.getLogger(CmppClient.class);
 
@@ -28,28 +30,53 @@ public class CmppClient implements Runnable {
 
 	@Override
 	public void run() {
-		try {
-			// create tcp/ip connector
-			IoConnector connector = new NioSocketConnector();
-			connector.getFilterChain().addLast("codec",
-					new ProtocolCodecFilter(new CmppProtocolCodecFactory()));
-			connector.setHandler(new CmppClientIoHandler(LOCK));
-			// set connect timeout
-			connector.setConnectTimeoutMillis(30000);
+		while (!CmppClient.IsConnected) {
+			if (!CmppClient.IsConnected) {
+				try {
+					// create tcp/ip connector
+					IoConnector connector = new NioSocketConnector();
+					connector.getFilterChain().addLast(
+							"codec",
+							new ProtocolCodecFilter(
+									new CmppProtocolCodecFactory()));
+					connector.setHandler(new CmppClientIoHandler(LOCK));
+					// set connect timeout
+					connector.setConnectTimeoutMillis(30000);
 
-			ConnectFuture cf = connector.connect(new InetSocketAddress(pu
-					.getValue("CmppGw.server.ip"), Integer.parseInt(pu
-					.getValue("CmppGw.server.port"))));
-			System.out.println("CmppGw.server.ip:"
-					+ pu.getValue("CmppGw.server.ip") + ","
-					+ Integer.parseInt(pu.getValue("CmppGw.server.port")));
-			// wait for the connection attem to be finished
-			cf.awaitUninterruptibly();
-			cf.getSession().getCloseFuture().awaitUninterruptibly();
-			connector.dispose();
-		} catch (Exception e) {
-			logger.info(e.toString());
-			e.printStackTrace();
+					ConnectFuture cf = connector
+							.connect(new InetSocketAddress(pu
+									.getValue("CmppGw.server.ip"),
+									Integer.parseInt(pu
+											.getValue("CmppGw.server.port"))));
+					logger.info("CmppGw.server.ip:"
+							+ pu.getValue("CmppGw.server.ip")
+							+ ","
+							+ Integer.parseInt(pu
+									.getValue("CmppGw.server.port")));
+					// wait for the connection attem to be finished
+					cf.awaitUninterruptibly();
+					cf.getSession().getCloseFuture().awaitUninterruptibly();
+					connector.dispose();
+				} catch (Exception e) {
+					logger.info(e.toString());
+					e.printStackTrace();
+
+					synchronized (CmppClient.IsConnected) {
+						CmppClient.IsConnected = false;
+					}
+				}
+			}
+
+			long awaitInterval = pu.getValue("reconnect.interval") == null
+					|| "".equals(pu.getValue("reconnect.interval")) ? 1000 * 60 * 10
+					: Long.valueOf(pu.getValue("reconnect.interval"));
+			try {
+				Thread.sleep(awaitInterval);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
 		}
 
 	}

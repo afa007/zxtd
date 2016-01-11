@@ -21,6 +21,12 @@ public class RoleService{
 		return (List<Role>) dao.findForList("RoleMapper.listAllERRoles", null);
 		
 	}
+
+	// 二级用户
+	public List<Role> listAllERRolesSecondGroup() throws Exception {
+		return (List<Role>) dao.findForList("RoleMapper.listAllERRolesSecondGroup", null);
+		
+	}
 	
 	
 	public List<Role> listAllappERRoles() throws Exception {

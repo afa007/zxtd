@@ -9,9 +9,7 @@ import org.springframework.web.servlet.ModelAndView;
  * 
 * 类名称：MyExceptionResolver.java
 * 类描述： 
-* @author FH
-* 作者单位： 
-* 联系方式：QQ313596790
+* @author ZXTD
 * @version 1.0
  */
 public class MyExceptionResolver implements HandlerExceptionResolver{

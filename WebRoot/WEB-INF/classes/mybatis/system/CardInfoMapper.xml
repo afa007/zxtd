@@ -1,114 +1,250 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="CardInfoMapper">
-	
-	
-	<!-- 新增-->
+
+
+	<!-- 新增 -->
 	<insert id="save" parameterType="pd">
 		insert into TB_CARDINFO(
-			MSISDN,	
-			IMSI,	
-			ICCID,	
-			STATUS,	
-			OWNER,	
-			CARDINFO_ID
+		MSISDN,
+		IMSI,
+		ICCID,
+		STATUS,
+		OWNER
 		) values (
-			#{MSISDN},	
-			#{IMSI},	
-			#{ICCID},	
-			#{STATUS},	
-			#{OWNER},	
-			#{CARDINFO_ID}
+		#{MSISDN},
+		#{IMSI},
+		#{ICCID},
+		#{STATUS},
+		#{OWNER}
 		)
 	</insert>
-	
-	
-	<!-- 删除-->
+
+
+	<!-- 删除 -->
 	<delete id="delete" parameterType="pd">
 		delete from TB_CARDINFO
-		where 
-			CARDINFO_ID = #{CARDINFO_ID}
+		where
+		CARDINFO_ID = #{CARDINFO_ID}
 	</delete>
-	
-	
+
+
 	<!-- 修改 -->
 	<update id="edit" parameterType="pd">
-		update  TB_CARDINFO
-			set 
-				MSISDN = #{MSISDN},
-				IMSI = #{IMSI},
-				ICCID = #{ICCID},
-				STATUS = #{STATUS},
-				OWNER = #{OWNER},
-			CARDINFO_ID = CARDINFO_ID
-			where 
-				CARDINFO_ID = #{CARDINFO_ID}
+		update TB_CARDINFO
+		set
+		MSISDN =
+		#{MSISDN},
+		IMSI = #{IMSI},
+		ICCID = #{ICCID},
+		STATUS = #{STATUS},
+		OWNER =
+		#{OWNER},
+		CARDINFO_ID = CARDINFO_ID
+		where
+		CARDINFO_ID = #{CARDINFO_ID}
 	</update>
-	
-	
+
+	<!-- 更新权限列表 -->
+	<update id="updateAuthByCardList" parameterType="pd">
+		update TB_CARDINFO
+		<![CDATA[
+		set
+		OWNER =
+		#{username}, gprs=${taocan}, sms = ${SMS_CNT}, date = ${authDate}
+		where
+		 MSISDN >= ${authStart}
+		 and MSISDN <= ${authEnd}
+		 ]]>
+	</update>
+
+	<!-- 更新权限之前，先获取要更新的记录条数 -->
+	<select id="getToUpdateAuthCardNum" parameterType="pd"
+		resultType="Integer">
+	<![CDATA[
+		select  count(1) as cnt from TB_CARDINFO where MSISDN >= ${authStart} and MSISDN <= ${authEnd}
+	]]>
+	</select>
+
+
+
+	<!-- 修改 -->
+	<update id="editByDeamon" parameterType="pd">
+		update TB_CARDINFO
+		set
+		MSISDN = #{MSISDN},
+		IMSI = #{IMSI},
+		ICCID = #{ICCID}
+		where
+		CARDINFO_ID =
+		#{CARDINFO_ID}
+	</update>
+
+
 	<!-- 通过ID获取数据 -->
 	<select id="findById" parameterType="pd" resultType="pd">
-		select 
-			MSISDN,	
-			IMSI,	
-			ICCID,	
-			STATUS,	
-			OWNER,	
-			CARDINFO_ID
-		from 
-			TB_CARDINFO
-		where 
-			CARDINFO_ID = #{CARDINFO_ID}
+		select
+		MSISDN,
+		IMSI,
+		ICCID,
+		STATUS,
+		OWNER,
+		CARDINFO_ID
+		from
+		TB_CARDINFO
+		where
+		CARDINFO_ID = #{CARDINFO_ID}
 	</select>
-	
-	
+
+	<!-- 通过ID获取数据 -->
+	<select id="findByIdMSISDN" parameterType="pd" resultType="pd">
+		select
+		MSISDN,
+		IMSI,
+		ICCID,
+		STATUS,
+		OWNER,
+		CARDINFO_ID
+		from
+		TB_CARDINFO
+		where
+		MSISDN = #{MSISDN}
+	</select>
+
+	<!-- 通过ID和用户名获取数据 -->
+	<select id="findByIdAndOwner" parameterType="pd" resultType="pd">
+		select
+		MSISDN,
+		IMSI,
+		ICCID,
+		STATUS,
+		OWNER,
+		CARDINFO_ID
+		from
+		TB_CARDINFO
+		where
+		MSISDN = #{MSISDN}
+		<trim prefix="" suffixOverrides="">
+			<if test="USERID != null and USERID != ''">
+			<![CDATA[
+				and OWNER = #{USERID,jdbcType=VARCHAR}
+				]]>
+			</if>
+		</trim>
+	</select>
+
+
 	<!-- 列表 -->
 	<select id="datalistPage" parameterType="page" resultType="pd">
 		select
-				a.MSISDN,	
-				a.IMSI,	
-				a.ICCID,	
-				a.STATUS,	
-				a.OWNER,	
-				a.CARDINFO_ID
-		from 
-				TB_CARDINFO a
+		a.MSISDN,
+		a.IMSI,
+		a.ICCID,
+		a.STATUS,
+		a.OWNER,
+		a.CARDINFO_ID
+		from
+		TB_CARDINFO a
+		where 1 = 1
+		<trim prefix="" suffixOverrides="">
+			<if test="pd.key != null and pd.key != ''">
+			<![CDATA[
+				and (a.MSISDN like CONCAT('%', #{pd.key,jdbcType=VARCHAR}, '%') or
+				a.IMSI like  CONCAT('%', #{pd.key,jdbcType=VARCHAR}, '%') or a.ICCID like
+				 CONCAT('%', #{pd.key,jdbcType=VARCHAR}, '%') )
+				]]>
+			</if>
+			<if test="pd.USERID != null and pd.USERID != ''">
+			<![CDATA[
+				and a.OWNER = #{pd.USERID,jdbcType=VARCHAR}
+				]]>
+			</if>
+			<if test="pd.owner != null and pd.owner!= ''">
+			<![CDATA[
+				and a.OWNER = #{pd.owner,jdbcType=VARCHAR}
+				]]>
+			</if>
+		</trim>
 	</select>
-	
+
 	<!-- 列表(全部) -->
 	<select id="listAll" parameterType="pd" resultType="pd">
 		select
-				a.MSISDN,	
-				a.IMSI,	
-				a.ICCID,	
-				a.STATUS,	
-				a.OWNER,	
-				a.CARDINFO_ID
-		from 
-				TB_CARDINFO a
+		a.MSISDN,
+		a.IMSI,
+		a.ICCID,
+		a.STATUS,
+		a.OWNER,
+		a.CARDINFO_ID
+		from
+		TB_CARDINFO
+		a
+		where 1 = 1
+		<trim prefix="" suffixOverrides="">
+			<if test="key != null and key != ''">
+			<![CDATA[
+				and (a.MSISDN like CONCAT('%', #{key,jdbcType=VARCHAR}, '%') or
+				a.IMSI like  CONCAT('%', #{key,jdbcType=VARCHAR}, '%') or a.ICCID like
+				 CONCAT('%', #{key,jdbcType=VARCHAR}, '%') )
+				]]>
+			</if>
+			<if test="USERID != null and USERID != ''">
+			<![CDATA[
+				and a.OWNER = #{USERID,jdbcType=VARCHAR}
+				]]>
+			</if>
+			<if test="owner != null and owner!= ''">
+			<![CDATA[
+				and a.OWNER = #{pd.owner,jdbcType=VARCHAR}
+				]]>
+			</if>
+		</trim>
 	</select>
-	
+
 	<!-- 列表(全部) -->
 	<select id="listAllWithEmpty" parameterType="pd" resultType="pd">
 		select
-				a.MSISDN,	
-				a.IMSI,	
-				a.ICCID,	
-				a.STATUS,	
-				a.OWNER,	
-				a.CARDINFO_ID
-		from 
-				TB_CARDINFO a where isnull(a.IMSI) or isnull(a.ICCID)
+		a.MSISDN,
+		a.IMSI,
+		a.ICCID,
+		a.STATUS,
+		a.OWNER,
+		a.CARDINFO_ID
+		from
+		TB_CARDINFO a
+		where 1 = 1 and (isnull(a.IMSI) or isnull(a.ICCID) or
+		isnull(a.status) or ('未知' = a.status)) and a.msisdn >= '1064805187000'
+		order by a.msisdn
+		<trim prefix="" suffixOverrides="">
+			<if test="key != null and key != ''">
+			<![CDATA[
+				and (a.MSISDN like CONCAT('%', #{key,jdbcType=VARCHAR}, '%') or
+				a.IMSI like  CONCAT('%', #{key,jdbcType=VARCHAR}, '%') or a.ICCID like
+				 CONCAT('%', #{key,jdbcType=VARCHAR}, '%') )
+				]]>
+			</if>
+			<if test="USERID != null and USERID != ''">
+			<![CDATA[
+				and a.OWNER = #{USERID,jdbcType=VARCHAR}
+				]]>
+			</if>
+			<if test="owner != null and owner!= ''">
+			<![CDATA[
+				and a.OWNER = #{pd.owner,jdbcType=VARCHAR}
+				]]>
+			</if>
+		</trim>
 	</select>
-	
+
 	<!-- 批量删除 -->
 	<delete id="deleteAll" parameterType="String">
 		delete from TB_CARDINFO
-		where 
-			CARDINFO_ID in
-		<foreach item="item" index="index" collection="array" open="(" separator="," close=")">
-                 #{item}
+		where
+		CARDINFO_ID in
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
 		</foreach>
 	</delete>
-	
+
 </mapper>

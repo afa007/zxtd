@@ -35,6 +35,7 @@ public class ShortMessage extends ByteData {
 	public String getMessage() {
 		String str = "";
 		try {
+			logger.info("message:" +new String(messageData, encoding));
 			str = new String(messageData, encoding);
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
@@ -72,6 +73,8 @@ public class ShortMessage extends ByteData {
 		this.msgFormat = msgFormat;
 		if (msgFormat == 0) {
 			encoding = "US-ASCII";
+		} else if (msgFormat == 4) {
+			encoding = SmsConstant.ENC_ISO8859_1;
 		} else if (msgFormat == 8) {
 			encoding = "UnicodeBigUnmarked";
 		} else if (msgFormat == 15) {

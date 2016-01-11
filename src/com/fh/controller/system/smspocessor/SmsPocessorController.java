@@ -26,14 +26,18 @@ import org.springframework.web.servlet.ModelAndView;
 
 import com.cmpp.util.MsgQUtil;
 import com.fh.controller.base.BaseController;
+import com.fh.controller.system.tools.ZxtdConstant;
 import com.fh.entity.Page;
+import com.fh.entity.system.User;
 import com.fh.util.AppUtil;
 import com.fh.util.ObjectExcelView;
 import com.fh.util.Const;
 import com.fh.util.PageData;
 import com.fh.util.Tools;
 import com.fh.util.Jurisdiction;
+import com.fh.service.system.cardinfo.CardInfoService;
 import com.fh.service.system.smspocessor.SmsPocessorService;
+import com.google.gson.Gson;
 
 /**
  * 类名称：SmsPocessorController 创建人：FH 创建时间：2015-11-04
@@ -43,8 +47,14 @@ import com.fh.service.system.smspocessor.SmsPocessorService;
 public class SmsPocessorController extends BaseController {
 
 	String menuUrl = "smspocessor/list.do"; // 菜单地址(权限用)
+
 	@Resource(name = "smspocessorService")
 	private SmsPocessorService smspocessorService;
+
+	@Resource(name = "cardinfoService")
+	private CardInfoService cardinfoService;
+
+	private Gson gson = new Gson();
 
 	/**
 	 * 发短信
@@ -55,7 +65,7 @@ public class SmsPocessorController extends BaseController {
 		PageData pd = new PageData();
 		pd = this.getPageData();
 
-		mv.setViewName("system/smspocessor/sms");
+		mv.setViewName("system/smspocessor/smspocessor");
 
 		mv.addObject("pd", pd);
 		return mv;
@@ -71,21 +81,86 @@ public class SmsPocessorController extends BaseController {
 		PageData pd = new PageData();
 		pd = this.getPageData();
 
-		String phone = pd.getString("PHONE");
-		String content = pd.getString("CONTENT");
-		System.out.println("PHONE:" + phone + ", content:" + content);
+		// 所有权校验
+		boolean checkOk = true;
 
+		String phone = pd.getString("PHONE");
+
+		// 从session获取用户信息
+		Subject currentUser = SecurityUtils.getSubject();
+		Session session = currentUser.getSession();
+		User user = (User) session.getAttribute(Const.SESSION_USER);
+		pd.put("USERID", user.getUSERNAME());
+		if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+			if (!"2".equals(user.getROLE_ID())
+					&& !"1".equals(user.getROLE_ID())) {
+				pd.put("USERID", user.getUSERNAME());
+			}
+		}
+
+		logger.info("pd:" + gson.toJson(pd));
+
+		pd.put("msg", "发送成功!");
 		if (phone != null) {
 			if (phone.contains(";")) {
 				String phoneList[] = phone.split(";");
 				for (int i = 0; i < phoneList.length; i++) {
 					String MSISDN = phoneList[i];
+					pd.put("MSISDN", MSISDN);
+
+					if (pd.get("USERID") != null
+							&& !"".equals(pd.get("USERID"))
+							&& !"2".equals(user.getROLE_ID())
+							&& !"1".equals(user.getROLE_ID())
+							&& cardinfoService.findByIdAndOwner(pd) == null) {
+						logger.info("该卡未在您的名下，不能操作！");
+						pd.put("msg", "该卡未在您的名下，不能操作！");
+
+						checkOk = false;
+						break;
+					}
+				}
+				if (checkOk) {
+					for (int i = 0; i < phoneList.length; i++) {
+						String MSISDN = phoneList[i];
+
+						pd.put("SMSPOCESSOR_ID", this.get32UUID());
+						pd.put("MSISDN", MSISDN);
+						pd.put("TYPE", ZxtdConstant.SMS_TYPE_SEND);
+						pd.put("USERID", user.getUSERNAME());
+						pd.put("STATUS", ZxtdConstant.SMS_STATUS_TOSEND); // 待发送
+						pd.put("CREATETIME", new Date());
+
+						smspocessorService.save(pd);
+
+						// 待发送信息放入消息队列，等待1秒，发送不成功则更新短信为发送失败
+						if (!MsgQUtil.quene.offer(pd.get("SMSPOCESSOR_ID"), 1,
+								TimeUnit.SECONDS)) {
+
+							logger.info("信息送入消息队列失败");
+							pd.put("STATUS", "-1"); // 发送失败
+							smspocessorService.editStatus(pd);
+						} else {
+							logger.info("信息送入消息队列");
+						}
+					}
+				}
+			} else {
+
+				pd.put("MSISDN", phone);
+				if (pd.get("USERID") != null && !"".equals(pd.get("USERID"))
+						&& !"2".equals(user.getROLE_ID())
+						&& !"1".equals(user.getROLE_ID())
+						&& cardinfoService.findByIdAndOwner(pd) == null) {
+					logger.info("该卡未在您的名下，不能操作！");
+					pd.put("msg", "该卡未在您的名下，不能操作！");
+				} else {
 
 					pd.put("SMSPOCESSOR_ID", this.get32UUID());
-					pd.put("MSISDN", MSISDN);
-					pd.put("TYPE", "发送");
-					pd.put("USERID", pd.getString("USER_ID"));
-					pd.put("STATUS", "0"); // 待发送
+					pd.put("MSISDN", phone);
+					pd.put("TYPE", ZxtdConstant.SMS_TYPE_SEND);
+					pd.put("USERID", user.getUSERNAME());
+					pd.put("STATUS", "0");
 					pd.put("CREATETIME", new Date());
 
 					smspocessorService.save(pd);
@@ -93,28 +168,73 @@ public class SmsPocessorController extends BaseController {
 					// 待发送信息放入消息队列，等待1秒，发送不成功则更新短信为发送失败
 					if (!MsgQUtil.quene.offer(pd.get("SMSPOCESSOR_ID"), 1,
 							TimeUnit.SECONDS)) {
+
+						logger.info("信息送入消息队列失败");
 						pd.put("STATUS", "-1"); // 发送失败
 						smspocessorService.editStatus(pd);
+					} else {
+						logger.info("信息送入消息队列");
 					}
-					
 				}
-			} else {
-
-				pd.put("SMSPOCESSOR_ID", this.get32UUID());
-				pd.put("MSISDN", phone);
-				pd.put("TYPE", "发送");
-				pd.put("USERID", "");
-				pd.put("STATUS", "0");
-				pd.put("CREATETIME", new Date());
-
-				smspocessorService.save(pd);
 			}
 		}
 
-		mv.addObject("msg", "success");
-		mv.setViewName("system/smspocessor/sms");
+		mv.setViewName("system/smspocessor/smspocessor");
 
 		mv.addObject("pd", pd);
+		return mv;
+	}
+
+	/**
+	 * 列表
+	 */
+	@RequestMapping(value = "/list")
+	public ModelAndView list(Page page) {
+		logBefore(logger, "列表SmsPocessor");
+		// if(!Jurisdiction.buttonJurisdiction(menuUrl, "cha")){return null;}
+		// //校验权限
+		ModelAndView mv = this.getModelAndView();
+		PageData pd = new PageData();
+		try {
+			pd = this.getPageData();
+
+			// 从session获取用户信息
+			Subject currentUser = SecurityUtils.getSubject();
+			Session session = currentUser.getSession();
+			User user = (User) session.getAttribute(Const.SESSION_USER);
+			// 1和2是系统管理员
+			if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+				if (!"2".equals(user.getROLE_ID())
+						&& !"1".equals(user.getROLE_ID())) {
+					pd.put("USERID", user.getUSERNAME());
+				}
+			}
+
+			logger.info(gson.toJson(pd));
+
+			page.setPd(pd);
+			// 为空，或者非发送、接收类型，则设置查询条件为空
+			if (!ZxtdConstant.SMS_TYPE_SEND.equals(pd.get("typeid"))
+					&& !ZxtdConstant.SMS_TYPE_RECV.equals(pd.get("typeid"))) {
+				pd.put("typeid", null);
+			}
+			List<PageData> varList = smspocessorService.list(page); // 列出SmsPocessor列表
+			mv.setViewName("system/smspocessor/smspocessor_list");
+			if (varList != null && varList.size() > 0) {
+				for (int i = 0; i < varList.size(); i++) {
+					PageData lpd = varList.get(i);
+					String sCont = (String) lpd.get("CONTENT");
+					lpd.put("CONTENT", sCont.replace("<", "&lt"));
+					varList.set(i, lpd);
+				}
+
+			}
+			mv.addObject("varList", varList);
+			mv.addObject("pd", pd);
+			mv.addObject(Const.SESSION_QX, this.getHC()); // 按钮权限
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
 		return mv;
 	}
 
@@ -173,30 +293,6 @@ public class SmsPocessorController extends BaseController {
 		smspocessorService.edit(pd);
 		mv.addObject("msg", "success");
 		mv.setViewName("save_result");
-		return mv;
-	}
-
-	/**
-	 * 列表
-	 */
-	@RequestMapping(value = "/list")
-	public ModelAndView list(Page page) {
-		logBefore(logger, "列表SmsPocessor");
-		// if(!Jurisdiction.buttonJurisdiction(menuUrl, "cha")){return null;}
-		// //校验权限
-		ModelAndView mv = this.getModelAndView();
-		PageData pd = new PageData();
-		try {
-			pd = this.getPageData();
-			page.setPd(pd);
-			List<PageData> varList = smspocessorService.list(page); // 列出SmsPocessor列表
-			mv.setViewName("system/smspocessor/smspocessor_list");
-			mv.addObject("varList", varList);
-			mv.addObject("pd", pd);
-			mv.addObject(Const.SESSION_QX, this.getHC()); // 按钮权限
-		} catch (Exception e) {
-			logger.error(e.toString(), e);
-		}
 		return mv;
 	}
 

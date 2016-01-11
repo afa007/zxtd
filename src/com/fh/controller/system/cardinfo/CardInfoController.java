@@ -26,13 +26,14 @@ import org.springframework.web.servlet.ModelAndView;
 import com.cmeb.util.CmebUtil;
 import com.fh.controller.base.BaseController;
 import com.fh.entity.Page;
+import com.fh.entity.system.User;
 import com.fh.util.AppUtil;
 import com.fh.util.ObjectExcelView;
 import com.fh.util.Const;
 import com.fh.util.PageData;
-import com.fh.util.Tools;
 import com.fh.util.Jurisdiction;
 import com.fh.service.system.cardinfo.CardInfoService;
+import com.google.gson.Gson;
 
 /**
  * 类名称：CardInfoController 创建人：FH 创建时间：2015-11-04
@@ -47,6 +48,109 @@ public class CardInfoController extends BaseController {
 
 	private CmebUtil cmeb = new CmebUtil();
 
+	private Gson gson = new Gson();
+
+	/**
+	 * 去分配卡号
+	 */
+	@RequestMapping(value = "/goAuth")
+	public ModelAndView goAuth() throws Exception {
+		ModelAndView mv = this.getModelAndView();
+
+		PageData pd = new PageData();
+		pd = this.getPageData();
+		logger.info("pd:" + gson.toJson(pd));
+
+		// 从session获取用户信息
+		Subject currentUser = SecurityUtils.getSubject();
+		Session session = currentUser.getSession();
+		User user = (User) session.getAttribute(Const.SESSION_USER);
+		if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+			if (!"2".equals(user.getROLE_ID())
+					&& !"1".equals(user.getROLE_ID())) {
+				pd.put("USERID", user.getUSERNAME());
+			}
+		}
+
+		mv.setViewName("system/cardinfo/auth1");
+		mv.addObject("pd", pd);
+		return mv;
+	}
+
+	/**
+	 * 分配卡号前，查询要授权的卡的数目
+	 */
+	@RequestMapping(value = "/checkAuthNum")
+	@ResponseBody
+	public Object checkAuthNum() {
+		Map<String, String> map = new HashMap<String, String>();
+
+		PageData pd = new PageData();
+		pd = this.getPageData();
+		logger.info("pd:" + gson.toJson(pd));
+
+		map.put("errInfo", "success"); // 状态信息
+
+		// 从session获取用户信息
+		Subject currentUser = SecurityUtils.getSubject();
+		Session session = currentUser.getSession();
+		User user = (User) session.getAttribute(Const.SESSION_USER);
+		if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+			if (!"2".equals(user.getROLE_ID())
+					&& !"1".equals(user.getROLE_ID())) {
+				pd.put("USERID", user.getUSERNAME());
+			}
+		}
+
+		try {
+			int toUpdateAuthNum = cardinfoService.getToUpdateAuthCardNum(pd);
+			pd.put("toupdate", toUpdateAuthNum);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return AppUtil.returnObject(new PageData(), map);
+	}
+
+	/**
+	 * 分配卡号
+	 */
+	@RequestMapping(value = "/auth")
+	@ResponseBody
+	public Object auth() {
+		Map<String, String> map = new HashMap<String, String>();
+
+		PageData pd = new PageData();
+		pd = this.getPageData();
+		logger.info("pd:" + gson.toJson(pd));
+
+		map.put("errInfo", "success"); // 状态信息
+
+		// 从session获取用户信息
+		Subject currentUser = SecurityUtils.getSubject();
+		Session session = currentUser.getSession();
+		User user = (User) session.getAttribute(Const.SESSION_USER);
+		if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+			if (!"2".equals(user.getROLE_ID())
+					&& !"1".equals(user.getROLE_ID())) {
+				pd.put("USERID", user.getUSERNAME());
+			}
+		}
+
+		try {
+			// 更新失败
+			if (cardinfoService.updateAuthByCardList(pd) <= 0) {
+				map.put("errInfo", "error");
+			}
+		} catch (Exception e) {
+			map.put("errInfo", "error");
+			e.printStackTrace();
+		}
+
+		return AppUtil.returnObject(new PageData(), map);
+	}
+
 	/**
 	 * 实时信息查询
 	 */
@@ -56,37 +160,153 @@ public class CardInfoController extends BaseController {
 
 		PageData pd = new PageData();
 		pd = this.getPageData();
+		logger.info("pd:" + gson.toJson(pd));
+
+		String resultInfo = "";
+
+		// 从session获取用户信息
+		Subject currentUser = SecurityUtils.getSubject();
+		Session session = currentUser.getSession();
+		User user = (User) session.getAttribute(Const.SESSION_USER);
+		if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+			if (!"2".equals(user.getROLE_ID())
+					&& !"1".equals(user.getROLE_ID())) {
+				pd.put("USERID", user.getUSERNAME());
+			}
+		}
 
 		String msisdn = pd.getString("msisdn");
+		pd.put("MSISDN", msisdn);
+		if (msisdn != null && !"".equals(msisdn)
+				&& cardinfoService.findByIdMSISDN(pd) == null) {
+			resultInfo = "该卡在号码库中不存在！";
+		}
 
 		if (msisdn != null && !"".equals(msisdn)) {
-			pd.put("msisdn", msisdn);
-			// GPRS在线信息
-			HashMap<String, Object> gprs = cmeb.gprsrealsingle(msisdn);
-			if (gprs != null) {
-				pd.put("gprsstatus", "1".equals(gprs.get("gprsstatus")) ? "在线"
-						: "离线");
-				pd.put("ip", gprs.get("ip"));
-				pd.put("apn", gprs.get("apn"));
-				pd.put("rat", gprs.get("rat"));
+			if (pd.get("USERID") != null && !"".equals(pd.get("USERID"))
+					&& cardinfoService.findByIdAndOwner(pd) == null) {
+				logger.info("该卡未在您的名下，不能操作！");
+				pd.put("msg", "该卡未在您的名下，不能操作！");
+			} else {
+
+				// GPRS在线信息
+				HashMap<String, Object> gprs = cmeb.gprsrealsingle(msisdn);
+				if (gprs != null) {
+					String gprsstatus = "";
+					if ("00".equals(gprs.get("gprsstatus"))) {
+						gprsstatus = "在线";
+
+						pd.put("ip", gprs.get("ip"));
+						pd.put("apn", gprs.get("apn"));
+						if (gprs.get("rat") != null
+								&& !"".equals(gprs.get("rat"))) {
+							if ("1".equals(gprs.get("rat"))) {
+								pd.put("rat", gprs.get("3G"));
+							} else if ("2".equals(gprs.get("rat"))) {
+								pd.put("rat", gprs.get("2G"));
+							} else {
+								pd.put("rat", "未知");
+							}
+						} else {
+							pd.put("rat", "未知");
+						}
+					} else {
+						gprsstatus = "离线";
+
+						pd.put("ip", gprs.get("ip"));
+						pd.put("apn", gprs.get("apn"));
+						if (gprs.get("rat") != null
+								&& !"".equals(gprs.get("rat"))) {
+							if ("1".equals(gprs.get("rat"))) {
+								pd.put("rat", gprs.get("3G"));
+							} else if ("2".equals(gprs.get("rat"))) {
+								pd.put("rat", gprs.get("2G"));
+							} else {
+								pd.put("rat", "未知");
+							}
+						} else {
+							pd.put("rat", "未知");
+						}
+					}
+					pd.put("gprsstatus", gprsstatus);
+				}
+
+				// 用户卡状态
+				String userstatus = cmeb.userstatusrealsingle(msisdn);
+				pd.put("userstatus", userstatus);
+
+				// 开关机状态
+				String onoff = cmeb.onandoffrealsingle(msisdn);
+				pd.put("onoff", onoff);
+
+				// 当月GPRS使用量
+				long gprsused = cmeb.gprsusedinfosingle(msisdn);
+				if (gprsused < 0) {
+					pd.put("gprsused", "未知");
+				} else {
+					pd.put("gprsused", gprsused);
+				}
+				// 用户当月短信查询
+				long smsused = cmeb.smsusedinfosingle(msisdn);
+				if (smsused < 0) {
+					pd.put("smsused", "未知");
+				} else {
+					pd.put("smsused", smsused);
+				}
+				// 用户余额
+				double balance = cmeb.balancerealsingle(msisdn);
+				if (balance < 0) {
+					pd.put("balance", "未知");
+				} else {
+					pd.put("balance", balance);
+				}
 			}
-			// 在线状态
-			int online = cmeb.userstatusrealsingle(msisdn);
-			// 当月GPRS使用量
-			long gprsused = cmeb.gprsusedinfosingle(msisdn);
-			// 用户余额
-			double balance = cmeb.balancerealsingle(msisdn);
-			// 用户当月短信查询
-			long smsused = cmeb.smsusedinfosingle(msisdn);
-			pd.put("online", online);
-			pd.put("gprsused", gprsused);
-			pd.put("balance", balance);
-			pd.put("smsused", smsused);
 
 		}
 
+		pd.put("msg", resultInfo);
+
 		mv.setViewName("system/cardinfo/now");
 		mv.addObject("pd", pd);
+		return mv;
+	}
+
+	/**
+	 * 列表
+	 */
+	@RequestMapping(value = "/list")
+	public ModelAndView list(Page page) {
+		logBefore(logger, "列表CardInfo");
+		// if(!Jurisdiction.buttonJurisdiction(menuUrl, "cha")){return null;}
+		// //校验权限
+		ModelAndView mv = this.getModelAndView();
+		PageData pd = new PageData();
+
+		try {
+			pd = this.getPageData();
+
+			// 从session获取用户信息
+			Subject currentUser = SecurityUtils.getSubject();
+			Session session = currentUser.getSession();
+			User user = (User) session.getAttribute(Const.SESSION_USER);
+			if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+				if (!"2".equals(user.getROLE_ID())
+						&& !"1".equals(user.getROLE_ID())) {
+					pd.put("USERID", user.getUSERNAME());
+				}
+			}
+
+			logger.info("pd:" + gson.toJson(pd));
+
+			page.setPd(pd);
+			List<PageData> varList = cardinfoService.list(page); // 列出CardInfo列表
+			mv.setViewName("system/cardinfo/cardinfo_list");
+			mv.addObject("varList", varList);
+			mv.addObject("pd", pd);
+			mv.addObject(Const.SESSION_QX, this.getHC()); // 按钮权限
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
 		return mv;
 	}
 
@@ -102,6 +322,8 @@ public class CardInfoController extends BaseController {
 		ModelAndView mv = this.getModelAndView();
 		PageData pd = new PageData();
 		pd = this.getPageData();
+		logger.info("pd:" + gson.toJson(pd));
+
 		pd.put("CARDINFO_ID", this.get32UUID()); // 主键
 		cardinfoService.save(pd);
 		mv.addObject("msg", "success");
@@ -145,30 +367,6 @@ public class CardInfoController extends BaseController {
 		cardinfoService.edit(pd);
 		mv.addObject("msg", "success");
 		mv.setViewName("save_result");
-		return mv;
-	}
-
-	/**
-	 * 列表
-	 */
-	@RequestMapping(value = "/list")
-	public ModelAndView list(Page page) {
-		logBefore(logger, "列表CardInfo");
-		// if(!Jurisdiction.buttonJurisdiction(menuUrl, "cha")){return null;}
-		// //校验权限
-		ModelAndView mv = this.getModelAndView();
-		PageData pd = new PageData();
-		try {
-			pd = this.getPageData();
-			page.setPd(pd);
-			List<PageData> varList = cardinfoService.list(page); // 列出CardInfo列表
-			mv.setViewName("system/cardinfo/cardinfo_list");
-			mv.addObject("varList", varList);
-			mv.addObject("pd", pd);
-			mv.addObject(Const.SESSION_QX, this.getHC()); // 按钮权限
-		} catch (Exception e) {
-			logger.error(e.toString(), e);
-		}
 		return mv;
 	}
 
@@ -258,6 +456,21 @@ public class CardInfoController extends BaseController {
 		ModelAndView mv = new ModelAndView();
 		PageData pd = new PageData();
 		pd = this.getPageData();
+
+		// 从session获取用户信息
+		Subject currentUser = SecurityUtils.getSubject();
+		Session session = currentUser.getSession();
+		User user = (User) session.getAttribute(Const.SESSION_USER);
+		// 1和2是系统管理员
+		if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+			if (!"2".equals(user.getROLE_ID())
+					&& !"1".equals(user.getROLE_ID())) {
+				pd.put("USERID", user.getUSERNAME());
+			}
+		}
+
+		logger.info("pd:" + gson.toJson(pd));
+
 		try {
 			Map<String, Object> dataMap = new HashMap<String, Object>();
 			List<String> titles = new ArrayList<String>();

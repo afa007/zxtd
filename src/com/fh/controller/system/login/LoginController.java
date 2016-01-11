@@ -24,6 +24,7 @@ import com.fh.controller.base.BaseController;
 import com.fh.entity.system.Menu;
 import com.fh.entity.system.Role;
 import com.fh.entity.system.User;
+import com.fh.service.system.appuser.AppuserService;
 import com.fh.service.system.menu.MenuService;
 import com.fh.service.system.role.RoleService;
 import com.fh.service.system.user.UserService;
@@ -90,7 +91,7 @@ public class LoginController extends BaseController {
 		PageData pd = new PageData();
 		pd = this.getPageData();
 		String errInfo = "";
-		String KEYDATA[] = pd.getString("KEYDATA").replaceAll("qq313596790fh", "").replaceAll("QQ978336446fh", "").split(",fh,");
+		String KEYDATA[] = pd.getString("KEYDATA").replaceAll("qq290119597fh", "").replaceAll("QQ290119597fh", "").split(",fh,");
 		
 		if(null != KEYDATA && KEYDATA.length == 3){
 			//shiro管理的session

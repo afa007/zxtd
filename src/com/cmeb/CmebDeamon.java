@@ -20,10 +20,8 @@ import com.fh.util.PageData;
 public class CmebDeamon {
 
 	private static final int pagesize = 100;
-	private static final int STATUS_SUCCESS = 0;
-	private static final int STATUS_FAIL = -1;
 
-	private static final int GRAB_INTERVAL = 1000;
+	private static final int GRAB_INTERVAL = 5000;
 
 	private final Log logger = LogFactory.getLog(getClass());
 
@@ -60,56 +58,60 @@ public class CmebDeamon {
 				PageData insertPD = new PageData();
 				insertPD.put("MSISDN", MSISDN);
 
-
 				// 查询余额
 				double balance = cmeb.balancerealsingle(MSISDN);
 				if (balance >= 0) {
-					insertPD.put("balance", balance);
-				}
-				else{
+					insertPD.put("BALANCE", balance);
+					logger.info("BALANCE:" + balance);
+				} else {
 					logger.info("写入流量短信余额信息，查询余额失败");
 					return false;
 				}
+
 				
-				// 查询GPRS使用量
+				// 查询GPRS使用量，日期为当前日期的前一天
 				Date queryDate = DateUtil.addDay(now, -1);
 				String dateStr = DateUtil.DateToString(queryDate, "yyyyMMdd");
+				String monthStr = DateUtil.DateToString(queryDate, "yyyy-MM");
 				long page_size = pagesize;
 				long page_num = 1;
-				List<LinkedHashMap<String, Object>> mapList = cmeb
-						.batchgprsusedbydate(MSISDN, dateStr, page_size,
-								page_num);
 
-				if (mapList != null) {
-					LinkedHashMap<String, Object> map = mapList.get(0);
-					String msisdnStr = (String) map.get("Msisdn");
-					String gprsStr = (String) map.get("gprs");
+				HashMap<String, Object> map = cmeb.batchgprsusedbydate(MSISDN,
+						dateStr, page_size, page_num);
 
-					insertPD.put("gprs", gprsStr);
+				if (map != null) {
+					// LinkedHashMap<String, Object> map = mapList.get(0);
+
+					String msisdnStr = (String) map.get("msisdn");
+					long l_gprs = Long.valueOf((String) map.get("gprs"));
+
+					insertPD.put("GPRS", l_gprs);
+					logger.info("GPRS:" + l_gprs);
 				} else {
 					logger.info("写入流量短信余额信息，查询GPRS使用量失败");
 					return false;
 				}
 
 				// 查询短信使用量
-				mapList = cmeb.batchsmsusedbydate(MSISDN, dateStr, page_size,
+				map = cmeb.batchsmsusedbydate(MSISDN, dateStr, page_size,
 						page_num);
-				if (mapList != null) {
-					LinkedHashMap<String, Object> map = mapList.get(0);
-					String msisdnStr = (String) map.get("Msisdn");
-					String smsStr = (String) map.get("sms");
+				if (map != null) {
+					// LinkedHashMap<String, Object> map = mapList.get(0);
+					String msisdnStr = (String) map.get("msisdn");
+					long l_sms = Long.valueOf((String) map.get("sms"));
 
-					insertPD.put("sms", smsStr);
+					insertPD.put("SMS", l_sms);
+					logger.info("SMS:" + l_sms);
 				} else {
 					logger.info("写入流量短信余额信息，查询短信使用量失败");
 					return false;
 				}
 
-				insertPD.put("date", dateStr);
+				insertPD.put("date", monthStr);
 
 				smsgprsbalanceService.save(insertPD);
 
-				Thread.sleep(GRAB_INTERVAL);
+				Thread.sleep(GRAB_INTERVAL * 2);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -142,22 +144,32 @@ public class CmebDeamon {
 
 				PageData updatePD = new PageData();
 				updatePD.put("MSISDN", MSISDN);
+				updatePD.put("CARDINFO_ID", pd.get("CARDINFO_ID"));
 
+				// 查询状态
+				String statusStr = cmeb.userstatusrealsingle(MSISDN);
+				if(statusStr != null && !"".equals(statusStr)){
+					updatePD.put("status", statusStr);
+				}
+				else{
+					updatePD.put("status", "未知");
+				}
+				
 				// 查询码号
 				HashMap<String, Object> map = cmeb.cardinfo(MSISDN, 0);
-
 				if (map != null) {
-					updatePD.put("imsi", map.get("imsi"));
-					updatePD.put("iccid", map.get("iccid"));
+					updatePD.put("IMSI", map.get("imsi"));
+					updatePD.put("ICCID", map.get("iccid"));
 
 					logger.info("更新卡信息: " + updatePD.getString("MSISDN") + ", "
-							+ updatePD.getString("imsi") + ", "
-							+ updatePD.getString("iccid"));
-					cardInfoService.edit(updatePD);
+							+ updatePD.getString("IMSI") + ", "
+							+ updatePD.getString("ICCID"));
+					cardInfoService.editByDeamon(updatePD);
 				} else {
 					logger.info("查询卡信息失败");
 					return false;
 				}
+				
 
 				Thread.sleep(GRAB_INTERVAL);
 			}
@@ -189,13 +201,13 @@ public class CmebDeamon {
 				long page_size = pagesize;
 				long page_num = 1;
 
-				List<LinkedHashMap<String, Object>> map = null;
+				HashMap<String, Object> map = null;
 
 				do {
 					map = cmeb.batchgprsusedbydate(msisdn, dateStr, page_size,
 							page_num++);
 
-					if (dbHelper.addMmsGprsByDate(mmsOrGprs, dateStr, map)) {
+					/*if (dbHelper.addMmsGprsByDate(mmsOrGprs, dateStr, map)) {
 						logger.info("抓取信息成功，mmsOrGprs = [" + mmsOrGprs
 								+ "], dateStr = [" + dateStr + "]");
 						dbHelper.updateMmsGprsInfoByDate(mmsOrGprs, msisdn,
@@ -207,6 +219,68 @@ public class CmebDeamon {
 								dateStr, STATUS_FAIL);
 						result = false;
 					}
+*/
+				} while (map != null && map.size() > 0);
+			}
+		}
+
+		return result;
+	}
+	
+	
+	/*
+	 * 按天查询流量和短信情况，并写入数据库
+	 * 
+	 * 每月一日执行，查询上一日的数据，作为上一个月的数据
+	 */
+	public boolean fetchDataByMonth(String mmsOrGprs, String msisdn, int ldate) {
+
+		CmebUtil cmeb = new CmebUtil();
+		DBHelper dbHelper = new DBHelper();
+		Date now = new Date();
+
+		boolean result = false;
+
+		for (int i = 1; i <= ldate; i++) {
+			// 当前日期的，向前几天
+			Date queryDate = DateUtil.addMonth(now, ldate * -1);
+			
+			String dateStr = DateUtil.DateToString(queryDate, "yyyyMMdd");
+
+			if (dbHelper.haveGetedMmsGprsByDate(mmsOrGprs, dateStr)) {
+				continue;
+			} else {
+
+				long page_size = pagesize;
+				long page_num = 1;
+
+				HashMap<String, Object> map = null;
+
+				do {
+					// 流量
+					long gprs = -1;
+					map = cmeb.batchgprsusedbydate(msisdn, dateStr, page_size,
+							page_num++);
+
+					if(map != null){
+						gprs = (Long)map.get("gprs");
+					}
+					
+					
+					
+					/*if (dbHelper.addMmsGprsByDate(mmsOrGprs, dateStr, map)) {
+						logger.info("抓取信息成功，mmsOrGprs = [" + mmsOrGprs
+								+ "], dateStr = [" + dateStr + "]");
+						dbHelper.updateMmsGprsInfoByDate(mmsOrGprs, msisdn,
+								dateStr, STATUS_SUCCESS);
+					} else {
+						logger.info("抓取信息失败，mmsOrGprs = [" + mmsOrGprs
+								+ "], dateStr = [" + dateStr + "]");
+						dbHelper.updateMmsGprsInfoByDate(mmsOrGprs, msisdn,
+								dateStr, STATUS_FAIL);
+						result = false;
+					}
+*/
 				} while (map != null && map.size() > 0);
 			}
 		}

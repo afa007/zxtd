@@ -1,5 +1,8 @@
 package   com.cmpp.sms;
 
+import java.text.Format;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.ListIterator;
 
@@ -124,7 +127,10 @@ public class Queue extends SmsObject {
 			ListIterator iter = queueData.listIterator(0);
 			while (iter.hasNext()) {
 				pdu = (PDU) iter.next();
-				pdu.timeStamp = currentTime;
+				Date date = new Date();
+        		Format formatter = new SimpleDateFormat("MMddHHmmss");
+        		int timeStamp = Integer.valueOf(formatter.format(date));
+				pdu.timeStamp = timeStamp;
 			}
 		}
 	}

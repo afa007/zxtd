@@ -1,5 +1,9 @@
 package   com.cmpp.server;
 
+import java.text.Format;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.apache.mina.core.session.IoSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +38,11 @@ public class ActiveThread extends Thread {
                         lastCheckTime = currentTime;
                         ActiveTest activeTest = new ActiveTest();
                         activeTest.assignSequenceNumber();
-                        activeTest.timeStamp = currentTime;
+
+                		Date date = new Date();
+                		Format formatter = new SimpleDateFormat("MMddHHmmss");
+                		int timeStamp = Integer.valueOf(formatter.format(date));
+                        activeTest.timeStamp = timeStamp;
                         session.write(activeTest);
                     } else {
                         logger.info("connection lost!");

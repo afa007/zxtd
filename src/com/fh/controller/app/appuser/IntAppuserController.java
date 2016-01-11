@@ -23,6 +23,7 @@ import com.fh.util.DateUtil;
 import com.fh.util.MD5;
 import com.fh.util.PageData;
 import com.fh.util.Tools;
+import com.google.gson.Gson;
 
 /**
  * 会员-接口类
@@ -39,65 +40,69 @@ public class IntAppuserController extends BaseController {
 	/**
 	 * APP用户登录
 	 */
-	@RequestMapping(value="/login")
+	@RequestMapping(value = "/login")
 	@ResponseBody
-	public Object loginAppuser(){
+	public Object loginAppuser() {
 		logBefore(logger, "APP用户登录");
-		Map<String,Object> map = new HashMap<String, Object>();
+		Map<String, Object> map = new HashMap<String, Object>();
 		PageData pd = new PageData();
 		pd = this.getPageData();
 		String result = "00";
-		
-		try{
-			if(Tools.checkKey("USERNAME", pd.getString("FKEY"))){	//检验请求key值是否合法
-				
-				if(AppUtil.checkParam("login", pd)){	//检查参数
-					
-					String USERNAME = pd.getString("USERNAME");
-					String PASSWORD  = pd.getString("PASSWORD");
-					
-					String passwd = MD5.md5(PASSWORD); //密码加密
+
+		Gson gson = new Gson();
+		logger.info("pd:" + gson.toJson(pd));
+		try {
+
+			String USERNAME = pd.getString("USERNAME");
+			if (Tools.checkKey(USERNAME, pd.getString("FKEY"))) { // 检验请求key值是否合法
+
+				if (AppUtil.checkParam("login", pd)) { // 检查参数
+
+					String PASSWORD = pd.getString("PASSWORD");
+
+					String passwd = MD5.md5(PASSWORD); // 密码加密
 					pd.put("PASSWORD", passwd);
-					
-					System.out.println("USERNAME:" + pd.getString("USERNAME") + ",PASSWORD:" + pd.getString("PASSWORD"));
+
+					System.out.println("USERNAME:" + pd.getString("USERNAME")
+							+ ",PASSWORD:" + pd.getString("PASSWORD"));
 					pd = appuserService.getUserByNameAndPwd(pd);
-					
-					if(pd != null){
-						
+
+					if (pd != null) {
+
 						// 更新登录信息
-						pd.put("LAST_LOGIN",DateUtil.getTime().toString());
+						pd.put("LAST_LOGIN", DateUtil.getTime().toString());
 						appuserService.updateLastLogin(pd);
-						
-						//shiro加入身份验证
-						Subject subject = SecurityUtils.getSubject(); 
-					    UsernamePasswordToken token = new UsernamePasswordToken(USERNAME, PASSWORD); 
-					    try { 
-					        subject.login(token); 
-					    } catch (AuthenticationException e) { 
-					    	result = "02"; // 身份验证失败
-					    }
-					    
+
+						// shiro加入身份验证
+						Subject subject = SecurityUtils.getSubject();
+						UsernamePasswordToken token = new UsernamePasswordToken(
+								USERNAME, PASSWORD);
+						try {
+							subject.login(token);
+						} catch (AuthenticationException e) {
+							result = "02"; // 身份验证失败
+						}
+
 						pd = appuserService.findByUId(pd);
 						map.put("pd", pd);
-						result = (null == pd) ?  "02" :  "00"; // 02用户名密码校验成功，读取客户信息失败
-				
-					}else {
+						result = (null == pd) ? "02" : "00"; // 02用户名密码校验成功，读取客户信息失败
+
+					} else {
 						result = "01"; // 用户名或者密码错
 					}
-				}else{
+				} else {
 					result = "04"; // 参数缺失
 				}
-			}
-			else{
+			} else {
 				result = "05"; // FKEY值校验失败
 			}
-		}catch (Exception e){
+		} catch (Exception e) {
 			logger.error(e.toString(), e);
-		}finally{
+		} finally {
 			map.put("result", result);
 			logAfter(logger);
 		}
-		
+
 		return AppUtil.returnObject(new PageData(), map);
 	}
 

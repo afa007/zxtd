@@ -25,13 +25,14 @@ import org.springframework.web.servlet.ModelAndView;
 
 import com.fh.controller.base.BaseController;
 import com.fh.entity.Page;
+import com.fh.entity.system.User;
 import com.fh.service.system.smsgprsbalance.SmsgprsbalanceService;
 import com.fh.util.AppUtil;
 import com.fh.util.ObjectExcelView;
 import com.fh.util.Const;
 import com.fh.util.PageData;
-import com.fh.util.Tools;
 import com.fh.util.Jurisdiction;
+import com.google.gson.Gson;
 
 /**
  * 类名称：SmsgprsbalanceController 创建人：FH 创建时间：2015-11-04
@@ -43,6 +44,48 @@ public class SmsgprsbalanceController extends BaseController {
 	String menuUrl = "smsgprsbalance/list.do"; // 菜单地址(权限用)
 	@Resource(name = "smsgprsbalanceService")
 	private SmsgprsbalanceService smsgprsbalanceService;
+
+	private Gson gson = new Gson();
+
+	/**
+	 * 列表
+	 */
+	@RequestMapping(value = "/list")
+	public ModelAndView list(Page page) {
+		logBefore(logger, "列表Smsgprsbalance");
+		// if(!Jurisdiction.buttonJurisdiction(menuUrl, "cha")){return null;}
+		// //校验权限
+		ModelAndView mv = this.getModelAndView();
+		PageData pd = new PageData();
+
+		try {
+			pd = this.getPageData();
+
+			// 从session获取用户信息
+			Subject currentUser = SecurityUtils.getSubject();
+			Session session = currentUser.getSession();
+			User user = (User) session.getAttribute(Const.SESSION_USER);
+			// 1和2是系统管理员
+			if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+				if (!"2".equals(user.getROLE_ID())
+						&& !"1".equals(user.getROLE_ID())) {
+					pd.put("USERID", user.getUSERNAME());
+				}
+			}
+
+			logger.info("pd:" + gson.toJson(pd));
+
+			page.setPd(pd);
+			List<PageData> varList = smsgprsbalanceService.list(page); // 列出Smsgprsbalance列表
+			mv.setViewName("system/smsgprsbalance/smsgprsbalance_list");
+			mv.addObject("varList", varList);
+			mv.addObject("pd", pd);
+			mv.addObject(Const.SESSION_QX, this.getHC()); // 按钮权限
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+		return mv;
+	}
 
 	/**
 	 * 新增
@@ -99,43 +142,6 @@ public class SmsgprsbalanceController extends BaseController {
 		smsgprsbalanceService.edit(pd);
 		mv.addObject("msg", "success");
 		mv.setViewName("save_result");
-		return mv;
-	}
-
-	/**
-	 * 列表
-	 */
-	@RequestMapping(value = "/list")
-	public ModelAndView list(Page page) {
-		logBefore(logger, "列表Smsgprsbalance");
-		// if(!Jurisdiction.buttonJurisdiction(menuUrl, "cha")){return null;}
-		// //校验权限
-		ModelAndView mv = this.getModelAndView();
-		PageData pd = new PageData();
-
-		String searchkey = pd.getString("searchkey");
-		if (null != searchkey && !"".equals(searchkey)) {
-			pd.put("searchkey", searchkey.trim());
-		}
-
-		String date = pd.getString("date");
-		if (null != date && !"".equals(date)) {
-			pd.put("date", date.trim());
-		}
-
-		logBefore(logger, "searchkey:" + searchkey + ", date:" + date);
-
-		try {
-			pd = this.getPageData();
-			page.setPd(pd);
-			List<PageData> varList = smsgprsbalanceService.list(page); // 列出Smsgprsbalance列表
-			mv.setViewName("system/smsgprsbalance/smsgprsbalance_list");
-			mv.addObject("varList", varList);
-			mv.addObject("pd", pd);
-			mv.addObject(Const.SESSION_QX, this.getHC()); // 按钮权限
-		} catch (Exception e) {
-			logger.error(e.toString(), e);
-		}
 		return mv;
 	}
 
@@ -225,6 +231,21 @@ public class SmsgprsbalanceController extends BaseController {
 		ModelAndView mv = new ModelAndView();
 		PageData pd = new PageData();
 		pd = this.getPageData();
+
+		// 从session获取用户信息
+		Subject currentUser = SecurityUtils.getSubject();
+		Session session = currentUser.getSession();
+		User user = (User) session.getAttribute(Const.SESSION_USER);
+		// 1和2是系统管理员
+		if (user.getROLE_ID() != null && !"".equals(user.getROLE_ID())) {
+			if (!"2".equals(user.getROLE_ID())
+					&& !"1".equals(user.getROLE_ID())) {
+				pd.put("USERID", user.getUSERNAME());
+			}
+		}
+
+		logger.info("pd:" + gson.toJson(pd));
+
 		try {
 			Map<String, Object> dataMap = new HashMap<String, Object>();
 			List<String> titles = new ArrayList<String>();

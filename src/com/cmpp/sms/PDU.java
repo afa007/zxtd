@@ -32,5 +32,5 @@ public abstract class PDU extends ByteData {
 
 	public abstract String dump();
 
-	public long timeStamp = 0;
+	public int timeStamp = 0;
 }

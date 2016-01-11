@@ -1,5 +1,6 @@
 package com.cmeb.util;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -10,8 +11,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.cmeb.ConstantBean;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 
 public class CmebUtil {
 
@@ -20,6 +23,8 @@ public class CmebUtil {
 	private final Log logger = LogFactory.getLog(getClass());
 
 	private static long serialNo = 1;
+
+	Gson gson = new Gson();
 
 	/*
 	 * 
@@ -36,19 +41,24 @@ public class CmebUtil {
 			String respMsg = http.excute(0, uri);
 			logger.info(respMsg);
 			if (respMsg != null && !"".equals(respMsg)) {
+				// 结果转换为小写
 				respMsg = respMsg.toLowerCase();
 				// 读取Json
 				ObjectMapper mapper = new ObjectMapper();
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					JsonNode result = rootNode.path("result");
+				if (0 == status && rootNode.path("result").isArray()) {
+					JsonNode result = rootNode.path("result").iterator().next();
 					long sms = result.path("sms").asLong();
 
 					return sms;
+				} else {
+					return -1;
 				}
 			}
 		} catch (Exception e) {
@@ -73,19 +83,25 @@ public class CmebUtil {
 			String respMsg = http.excute(0, uri);
 			logger.info(respMsg);
 			if (respMsg != null && !"".equals(respMsg)) {
+				// 结果转换为小写
 				respMsg = respMsg.toLowerCase();
 				// 读取Json
 				ObjectMapper mapper = new ObjectMapper();
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					JsonNode result = rootNode.path("result");
-					long gprs = result.path("gprs").asLong();
+				if (0 == status && rootNode.path("result").isArray()) {
+					JsonNode result = rootNode.path("result").iterator().next();
+
+					long gprs = result.path("total_gprs").asLong();
 
 					return gprs;
+				} else {
+					return -1;
 				}
 			}
 		} catch (Exception e) {
@@ -99,36 +115,43 @@ public class CmebUtil {
 	 * 
 	 * CMIOT_API2009－短信使用信息批量查询，7日内
 	 */
-	public List<LinkedHashMap<String, Object>> batchsmsusedbydate(
-			String msisdn, String queryDate, long page_size, long page_num) {
+	public HashMap<String, Object> batchsmsusedbydate(String msisdn,
+			String queryDate, long page_size, long page_num) {
 		String transId = getTransId();
 		String ebid = "0001000000026";
 		String uri = getPath() + "batchsmsusedbydate?appid="
 				+ ConstantBean.APPID + "&transid=" + transId + "&ebid=" + ebid
 				+ "&token=" + getToken(transId) + "&msisdns=" + msisdn
-				+ "&query_date=" + queryDate + "&page_size=" + page_size
-				+ "&page_num=" + page_num;
+				+ "&query_date=" + queryDate;
 		logger.info(uri);
 
 		try {
 			String respMsg = http.excute(0, uri);
 			logger.info(respMsg);
 			if (respMsg != null && !"".equals(respMsg)) {
+				// 结果转换为小写
 				respMsg = respMsg.toLowerCase();
 				// 读取Json
 				ObjectMapper mapper = new ObjectMapper();
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					String result = rootNode.path("result").asText();
+				if (0 == status && rootNode.path("result").isArray()) {
+					JsonNode item = rootNode.path("result").iterator().next();
 
-					List<LinkedHashMap<String, Object>> list = mapper
-							.readValue(result, List.class);
+					if (item != null) {
+						HashMap<String, Object> resultMap = new HashMap<String, Object>();
+						resultMap.put("msisdn", item.path("msisdn").asText());
+						resultMap.put("sms", item.path("sms").asText());
 
-					return list;
+						return resultMap;
+					} else {
+						logger.info("解析result失败");
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -142,36 +165,47 @@ public class CmebUtil {
 	 * 
 	 * CMIOT_API2010－流量使用信息批量查询，7日内
 	 */
-	public List<LinkedHashMap<String, Object>> batchgprsusedbydate(
-			String msisdn, String queryDate, long page_size, long page_num) {
+	public HashMap<String, Object> batchgprsusedbydate(String msisdn,
+			String queryDate, long page_size, long page_num) {
 		String transId = getTransId();
 		String ebid = "0001000000027";
 		String uri = getPath() + "batchgprsusedbydate?appid="
 				+ ConstantBean.APPID + "&transid=" + transId + "&ebid=" + ebid
 				+ "&token=" + getToken(transId) + "&msisdns=" + msisdn
-				+ "&query_date=" + queryDate + "&page_size=" + page_size
-				+ "&page_num=" + page_num;
+				+ "&query_date=" + queryDate;
 		logger.info(uri);
 
 		try {
 			String respMsg = http.excute(0, uri);
 			logger.info(respMsg);
 			if (respMsg != null && !"".equals(respMsg)) {
+				// 返回结果转换为小写
 				respMsg = respMsg.toLowerCase();
 				// 读取Json
 				ObjectMapper mapper = new ObjectMapper();
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					String result = rootNode.path("result").asText();
+				if (0 == status && rootNode.path("result").isArray()) {
+					JsonNode item = rootNode.path("result").iterator().next();
 
-					List<LinkedHashMap<String, Object>> list = mapper
-							.readValue(result, List.class);
+					if (item != null) {
+						HashMap<String, Object> resultMap = new HashMap<String, Object>();
 
-					return list;
+						logger.info("gprs:" + item.path("gprs") + ", msisdn:"
+								+ item.path("msisdn"));
+						resultMap.put("gprs", item.path("gprs").asText());
+						resultMap.put("msisdn", item.path("msisdn").asText());
+
+						logger.info("gprs:" + item.path("gprs"));
+						return resultMap;
+					} else {
+						logger.info("解析result失败");
+					}
 				}
 
 			}
@@ -197,18 +231,25 @@ public class CmebUtil {
 			String respMsg = http.excute(0, uri);
 			logger.info(respMsg);
 			if (respMsg != null && !"".equals(respMsg)) {
+
+				// 返回结果转换为小写
 				respMsg = respMsg.toLowerCase();
+
 				// 读取Json
 				ObjectMapper mapper = new ObjectMapper();
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					JsonNode result = rootNode.path("result");
+				if (0 == status && rootNode.path("result").isArray()) {
+
+					JsonNode result = rootNode.path("result").iterator().next();
 					double balance = result.path("balance").asDouble();
 
+					logger.info("余额balance:" + balance);
 					return balance;
 				}
 
@@ -242,10 +283,13 @@ public class CmebUtil {
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					JsonNode result = rootNode.path("result");
+				if (0 == status && rootNode.path("result").isArray()) {
+
+					JsonNode result = rootNode.path("result").iterator().next();
 					long total = result.path("total").asLong();
 
 					return total;
@@ -281,10 +325,13 @@ public class CmebUtil {
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					JsonNode result = rootNode.path("result");
+				if (0 == status && rootNode.path("result").isArray()) {
+
+					JsonNode result = rootNode.path("result").iterator().next();
 					long sms = result.path("sms").asLong();
 
 					return sms;
@@ -319,24 +366,28 @@ public class CmebUtil {
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					JsonNode result = rootNode.path("result");
 
-					HashMap<String, Object> resultMap = new HashMap<String, Object>();
-
-					int gprsstatus = result.path("gprsstatus").asInt();
+				HashMap<String, Object> resultMap = new HashMap<String, Object>();
+				if (0 == status && rootNode.path("result").isArray()) {
+					JsonNode item = rootNode.path("result").iterator().next();
+					String gprsstatus = item.path("gprsstatus").asText();
 					resultMap.put("gprsstatus", gprsstatus);
-					String ip = result.path("ip").asText();
+					String ip = item.path("ip").asText();
 					resultMap.put("ip", ip);
-					String apn = result.path("apn").asText();
+					String apn = item.path("apn").asText();
 					resultMap.put("apn", apn);
-					String rat = result.path("rat").asText();
+					String rat = item.path("rat").asText();
 					resultMap.put("rat", rat);
 
-					return resultMap;
+				} else {
+					resultMap.put("message", rootNode.path("message").asText());
 				}
+
+				return resultMap;
 
 			}
 		} catch (Exception e) {
@@ -349,8 +400,9 @@ public class CmebUtil {
 	/*
 	 * 
 	 * CMIOT_API2002－用户状态信息实时查询 返回值： 1在线， 0其他
+	 * 00-正常，01-单向停机，02-停机，03-预销号，04-销号，05-过户，06-休眠，07-待激活，99-号码不存在
 	 */
-	public int userstatusrealsingle(String msisdn) {
+	public String userstatusrealsingle(String msisdn) {
 		String transId = getTransId();
 		String ebid = "0001000000009";
 		String uri = getPath() + "userstatusrealsingle?appid="
@@ -367,16 +419,38 @@ public class CmebUtil {
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					JsonNode result = rootNode.path("result");
+				if (status == 0 && rootNode.path("result").isArray()) {
+					JsonNode result = rootNode.path("result").iterator().next();
 					String statusStr = result.path("status").asText();
-					if ("00".equals(statusStr)) {
-						return 1;
+					if (statusStr == null || "".equals(statusStr)) {
+						return "未知";
+					} else if ("00".equals(statusStr)) {
+						return "正常";
+					} else if ("01".equals(statusStr)) {
+						return "单向停机";
+					} else if ("02".equals(statusStr)) {
+						return "停机";
+					} else if ("03".equals(statusStr)) {
+						return "预销号";
+					} else if ("04".equals(statusStr)) {
+						return "销号";
+					} else if ("05".equals(statusStr)) {
+						return "过户";
+					} else if ("06".equals(statusStr)) {
+						return "休眠";
+					} else if ("07".equals(statusStr)) {
+						return "待激活";
+					} else if ("99".equals(statusStr)) {
+						return "号码不存在";
 					} else {
-						return 0;
+						return "未知";
 					}
+				} else {
+					return rootNode.path("message").asText();
 				}
 
 			}
@@ -384,7 +458,7 @@ public class CmebUtil {
 			e.printStackTrace();
 		}
 
-		return -1;
+		return "未知";
 	}
 
 	/*
@@ -409,20 +483,33 @@ public class CmebUtil {
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					JsonNode result = rootNode.path("result");
-					HashMap<String, Object> resultMap = new HashMap<String, Object>();
+				if (0 == status && rootNode.path("result").isArray()) {
+					JsonNode item = rootNode.path("result").iterator().next();
 
-					String msisdn = result.path("msisdn").asText();
-					resultMap.put("msisdn", msisdn);
-					String imsi = result.path("imsi").asText();
-					resultMap.put("imsi", imsi);
-					String iccid = result.path("iccid").asText();
-					resultMap.put("iccid", iccid);
+					if (item != null) {
+						HashMap<String, Object> resultMap = new HashMap<String, Object>();
+						String msisdn = item.path("msisdn").asText();
+						String imsi = item.path("imsi").asText();
+						String iccid = item.path("iccid").asText();
 
-					return resultMap;
+						resultMap.put("msisdn", msisdn);
+						resultMap.put("imsi", imsi);
+						resultMap.put("iccid", iccid);
+
+						logger.info("iccid:" + item.path("iccid").asText()
+								+ ", imsi:" + item.path("imsi").asText()
+								+ ", msisdn:" + item.path("msisdn").asText());
+
+						return resultMap;
+					} else {
+						logger.info("解析result失败");
+					}
+				} else {
+					logger.info("查询码号信息失败");
 				}
 
 			}
@@ -437,7 +524,7 @@ public class CmebUtil {
 	 * 
 	 * CMIOT_API2008－开关机状态实时查询
 	 */
-	public int onandoffrealsingle(String msisdn) {
+	public String onandoffrealsingle(String msisdn) {
 		String transId = getTransId();
 		String ebid = "0001000000025";
 		String uri = getPath() + "onandoffrealsingle?appid="
@@ -454,24 +541,27 @@ public class CmebUtil {
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
-				if (status == 0) {
-					JsonNode result = rootNode.path("result");
+				if (0 == status && rootNode.path("result").isArray()) {
+					JsonNode result = rootNode.path("result").iterator().next();
 					int statusVal = result.path("status").asInt();
 					if (1 == statusVal) {
-						return 1;
+						return "开机";
 					} else {
-						return 0;
+						return "关机";
 					}
+				} else {
+					return rootNode.path("message").asText();
 				}
 
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
-		return -1;
+		return "未知";
 	}
 
 	/*
@@ -495,7 +585,9 @@ public class CmebUtil {
 				JsonNode rootNode = mapper.readTree(respMsg);
 
 				logger.info("status:" + rootNode.path("status") + ", message:"
-						+ rootNode.path("message"));
+						+ rootNode.path("message") + ",result:"
+						+ rootNode.path("result").asText());
+
 				int status = rootNode.path("status").asInt();
 				if (status == 0) {
 					return 0;
@@ -614,15 +706,15 @@ public class CmebUtil {
 		logger.info("开关机状态实时查询： " + this.onandoffrealsingle(msisdn));
 
 		// 短信使用信息批量查询，7日内
-		List<LinkedHashMap<String, Object>> list = this.batchsmsusedbydate(
-				msisdn, "20151030", 100, 1);
-		if (list != null) {
-			logger.info("短信使用批量查询： " + list.size());
+		HashMap<String, Object> map = this.batchsmsusedbydate(msisdn,
+				"20151030", 100, 1);
+		if (map != null) {
+			logger.info("短信使用批量查询： " + map.get("SMS"));
 		}
 		// 流量使用信息批量查询，7日内
-		list = this.batchgprsusedbydate(msisdn, "20151030", 100, 1);
-		if (list != null) {
-			logger.info("流量使用批量查询： " + list.size());
+		map = this.batchgprsusedbydate(msisdn, "20151030", 100, 1);
+		if (map != null) {
+			logger.info("流量使用批量查询： " + map.get("GPRS"));
 		}
 		logger.info("用户余额： " + this.balancerealsingle(msisdn));
 
@@ -637,10 +729,36 @@ public class CmebUtil {
 
 		return true;
 	}
-	
 
 	public static void main(String args[]) {
+
 		CmebUtil util = new CmebUtil();
 		util.testAPIs();
+		/*
+		 * 
+		 * String respMsg = ""; ObjectMapper mapper = new ObjectMapper();
+		 * JsonNode rootNode;
+		 * 
+		 * try { rootNode = mapper.readTree(respMsg);
+		 * 
+		 * String status = rootNode.path("status").asText();
+		 * 
+		 * if ("0".equals(status) && rootNode.path("result").isArray()) {
+		 * 
+		 * JsonNode item = rootNode.path("result").iterator().next();
+		 * 
+		 * if (item != null) { HashMap<String, Object> resultMap = new
+		 * HashMap<String, Object>();
+		 * 
+		 * resultMap.put("GPRS", item.path("GPRS").asText());
+		 * resultMap.put("MSISDN", item.path("MSISDN").asText());
+		 * 
+		 * System.out.println("GPRS:" + item.path("GPRS")); } }
+		 * 
+		 * } catch (JsonProcessingException e) { // TODO Auto-generated catch
+		 * block e.printStackTrace(); } catch (IOException e) { // TODO
+		 * Auto-generated catch block e.printStackTrace(); }
+		 */
+
 	}
 }

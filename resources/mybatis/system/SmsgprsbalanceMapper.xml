@@ -37,11 +37,13 @@
 	<update id="edit" parameterType="pd">
 		update TB_SMSGPRSBALANCE
 		set
-		DATE = #{DATE},
+		DATE
+		= #{DATE},
 		SMS = #{SMS},
 		GPRS = #{GPRS},
 		BALANCE = #{BALANCE},
-		MSISDN = #{MSISDN},
+		MSISDN =
+		#{MSISDN},
 		OPDATE = #{OPDATE},
 		SMSGPRSBALANCE_ID = SMSGPRSBALANCE_ID
 		where
@@ -77,7 +79,31 @@
 		a.OPDATE,
 		a.SMSGPRSBALANCE_ID
 		from
-		TB_SMSGPRSBALANCE a
+		TB_SMSGPRSBALANCE a, tb_cardinfo b
+		where
+		a.MSISDN = b.msisdn
+		<trim prefix="" suffixOverrides="">
+			<if test="pd.key != null and pd.key != ''">
+			<![CDATA[
+				and (a.MSISDN like CONCAT('%', #{pd.key,jdbcType=VARCHAR}, '%'))
+				]]>
+			</if>
+			<if test="pd.dateStart != null and pd.dateStart != ''">
+				<![CDATA[
+				and a.DATE >= #{pd.dateStart,jdbcType=TIMESTAMP}
+				]]>
+			</if>
+			<if test="pd.dateEnd != null and pd.dateEnd != ''">
+				<![CDATA[
+				and a.DATE <= #{pd.dateEnd,jdbcType=TIMESTAMP}
+				]]>
+			</if>
+			<if test="pd.USERID != null and pd.USERID != ''">
+			<![CDATA[
+				and b.owner = #{pd.USERID,jdbcType=VARCHAR}
+				]]>
+			</if>
+		</trim>
 	</select>
 
 	<!-- 列表(全部) -->
@@ -91,14 +117,31 @@
 		a.OPDATE,
 		a.SMSGPRSBALANCE_ID
 		from
-		TB_SMSGPRSBALANCE a
-		where 1=1
-		<if test="searchkey != null and searchkey != ''">
-			and a.MSISDN like '%#{searchkey}%'
-		</if>
-		<if test="DATE != null and DATE != ''">
-			and a.DATE = '%#{DATE}%'
-		</if>
+		TB_SMSGPRSBALANCE a, tb_cardinfo b
+		where
+		a.MSISDN = b.msisdn
+		<trim prefix="" suffixOverrides="">
+			<if test="key != null and key != ''">
+			<![CDATA[
+				and (a.MSISDN like CONCAT('%', #{key,jdbcType=VARCHAR}, '%'))
+				]]>
+			</if>
+			<if test="dateStart != null and dateStart != ''">
+				<![CDATA[
+				and a.DATE >= #{dateStart,jdbcType=TIMESTAMP}
+				]]>
+			</if>
+			<if test="dateEnd != null and dateEnd != ''">
+				<![CDATA[
+				and a.DATE <= #{dateEnd,jdbcType=TIMESTAMP}
+				]]>
+			</if>
+			<if test="USERID != null and USERID != ''">
+			<![CDATA[
+				and b.owner = #{USERID,jdbcType=VARCHAR}
+				]]>
+			</if>
+		</trim>
 	</select>
 
 	<!-- 批量删除 -->

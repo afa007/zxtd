@@ -8,6 +8,7 @@
 			+ request.getServerName() + ":" + request.getServerPort()
 			+ path + "/";
 %>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,11 +35,12 @@
 				<div class="row-fluid">
 
 					<div class="space-6"></div>
+					
 					<div class="row-fluid">
 						<%
 							String strXML = "";
 
-							strXML += "<graph caption='对比表' xAxisName='月份' yAxisName='值' decimalPrecision='0' formatNumberScale='0'>";
+							strXML += "<graph caption='已使用流量' xAxisName='月份' yAxisName='流量' decimalPrecision='0' formatNumberScale='0'>";
 							strXML += "<set name='1' value='462' color='AFD8F8'/>";
 							strXML += "<set name='2' value='857' color='F6BD0F'/>";
 							strXML += "<set name='3' value='671' color='8BBA00'/>";
@@ -55,29 +57,8 @@
 							//Create the chart - Column 3D Chart with data from strXML variable using dataXML method
 						%>
 
-
-
-
-
-						<!-- 柱状图 -->
 						<div class="center">
 							<div style="float:left;">
-								<table border="0" width="50%">
-									<tr>
-										<td><jsp:include
-												page="../../FusionChartsHTMLRenderer.jsp" flush="true">
-												<jsp:param name="chartSWF" value="static/FusionCharts/Area2D.swf" />
-												<jsp:param name="strURL" value="" />
-												<jsp:param name="strXML" value="<%=strXML%>" />
-												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
-												<jsp:param name="debugMode" value="false" />
-											</jsp:include></td>
-									</tr>
-								</table>
-							</div>
-							<div style="float:right;">
 								<table border="0" width="50%">
 									<tr>
 										<td><jsp:include
@@ -86,159 +67,14 @@
 												<jsp:param name="strURL" value="" />
 												<jsp:param name="strXML" value="<%=strXML%>" />
 												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
+												<jsp:param name="chartWidth" value="450" />
+												<jsp:param name="chartHeight" value="270" />
 												<jsp:param name="debugMode" value="false" />
 											</jsp:include></td>
 									</tr>
 								</table>
 							</div>
-						</div>
-
-
-
-
-						<div class="center">
-							<div style="float:left;">
-								<table border="0" width="50%">
-									<tr>
-										<td><jsp:include
-												page="../../FusionChartsHTMLRenderer.jsp" flush="true">
-												<jsp:param name="chartSWF" value="static/FusionCharts/Bar2D.swf" />
-												<jsp:param name="strURL" value="" />
-												<jsp:param name="strXML" value="<%=strXML%>" />
-												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
-												<jsp:param name="debugMode" value="false" />
-											</jsp:include></td>
-									</tr>
-								</table>
-							</div>
-							<div style="float:right;">
-								<table border="0" width="50%">
-									<tr>
-										<td><jsp:include
-												page="../../FusionChartsHTMLRenderer.jsp" flush="true">
-												<jsp:param name="chartSWF" value="static/FusionCharts/Column2D.swf" />
-												<jsp:param name="strURL" value="" />
-												<jsp:param name="strXML" value="<%=strXML%>" />
-												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
-												<jsp:param name="debugMode" value="false" />
-											</jsp:include></td>
-									</tr>
-								</table>
-							</div>
-						</div>
-
-
-
-
-
-
-
-						<div class="center">
-							<div style="float:left;">
-								<table border="0" width="50%">
-									<tr>
-										<td><jsp:include
-												page="../../FusionChartsHTMLRenderer.jsp" flush="true">
-												<jsp:param name="chartSWF"
-													value="static/FusionCharts/Doughnut2D.swf" />
-												<jsp:param name="strURL" value="" />
-												<jsp:param name="strXML" value="<%=strXML%>" />
-												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
-												<jsp:param name="debugMode" value="false" />
-											</jsp:include></td>
-									</tr>
-								</table>
-							</div>
-							<div style="float:right;">
-								<table border="0" width="50%">
-									<tr>
-										<td><jsp:include
-												page="../../FusionChartsHTMLRenderer.jsp" flush="true">
-												<jsp:param name="chartSWF"
-													value="static/FusionCharts/Doughnut3D.swf" />
-												<jsp:param name="strURL" value="" />
-												<jsp:param name="strXML" value="<%=strXML%>" />
-												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
-												<jsp:param name="debugMode" value="false" />
-											</jsp:include></td>
-									</tr>
-								</table>
-							</div>
-						</div>
-
-
-
-
-
-
-
-						<div class="center">
-							<div style="float:left;">
-								<table border="0" width="50%">
-									<tr>
-										<td><jsp:include
-												page="../../FusionChartsHTMLRenderer.jsp" flush="true">
-												<jsp:param name="chartSWF" value="static/FusionCharts/SSGrid.swf" />
-												<jsp:param name="strURL" value="" />
-												<jsp:param name="strXML" value="<%=strXML%>" />
-												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
-												<jsp:param name="debugMode" value="false" />
-											</jsp:include></td>
-									</tr>
-								</table>
-							</div>
-							<div style="float:right;">
-								<table border="0" width="50%">
-									<tr>
-										<td><jsp:include
-												page="../../FusionChartsHTMLRenderer.jsp" flush="true">
-												<jsp:param name="chartSWF" value="static/FusionCharts/Pie3D.swf" />
-												<jsp:param name="strURL" value="" />
-												<jsp:param name="strXML" value="<%=strXML%>" />
-												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
-												<jsp:param name="debugMode" value="false" />
-											</jsp:include></td>
-									</tr>
-								</table>
-							</div>
-						</div>
-
-
-
-
-
-
-						<div class="center">
-							<div style="float:left;">
-								<table border="0" width="50%">
-									<tr>
-										<td><jsp:include
-												page="../../FusionChartsHTMLRenderer.jsp" flush="true">
-												<jsp:param name="chartSWF" value="static/FusionCharts/Pie2D.swf" />
-												<jsp:param name="strURL" value="" />
-												<jsp:param name="strXML" value="<%=strXML%>" />
-												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
-												<jsp:param name="debugMode" value="false" />
-											</jsp:include></td>
-									</tr>
-								</table>
-							</div>
+							
 							<div style="float:right;">
 								<table border="0" width="50%">
 									<tr>
@@ -248,8 +84,8 @@
 												<jsp:param name="strURL" value="" />
 												<jsp:param name="strXML" value="<%=strXML%>" />
 												<jsp:param name="chartId" value="myNext" />
-												<jsp:param name="chartWidth" value="500" />
-												<jsp:param name="chartHeight" value="300" />
+												<jsp:param name="chartWidth" value="450" />
+												<jsp:param name="chartHeight" value="270" />
 												<jsp:param name="debugMode" value="false" />
 											</jsp:include></td>
 									</tr>
@@ -257,29 +93,9 @@
 							</div>
 						</div>
 
-
-
-
-
-
-
-
-
-
-
-
 					</div>
 				</div>
 				<!--/row-->
-
-
-
-
-
-
-
-
-
 
 		</div>
 		<!-- #main-content -->

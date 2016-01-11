@@ -2,6 +2,7 @@ package com.cmpp.client;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,10 +13,13 @@ import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import com.cmeb.DateStyle;
+import com.cmeb.util.DBHelper;
+import com.cmeb.util.DateUtil;
 import com.cmpp.client.thread.ActiveThread;
 import com.cmpp.client.thread.MsgSendThread;
-import com.cmpp.client.thread.QueryThread;
 import com.cmpp.pdu.ActiveTest;
 import com.cmpp.pdu.ActiveTestResp;
 import com.cmpp.pdu.CmppPDU;
@@ -24,13 +28,12 @@ import com.cmpp.pdu.ConnectResp;
 import com.cmpp.pdu.Deliver;
 import com.cmpp.pdu.DeliverResp;
 import com.cmpp.pdu.QueryResp;
-import com.cmpp.pdu.Request;
 import com.cmpp.pdu.SubmitResp;
 import com.cmpp.server.MinaCmpp;
 import com.cmpp.sms.ByteBuffer;
 import com.cmpp.sms.StrUtil;
 import com.cmpp.util.CmppConstant;
-import com.fh.service.system.smspocessor.SmsPocessorService;
+import com.fh.controller.system.tools.ZxtdConstant;
 import com.fh.util.PageData;
 import com.fh.util.UuidUtil;
 import com.google.gson.Gson;
@@ -54,8 +57,7 @@ public class CmppClientIoHandler extends IoHandlerAdapter {
 
 	private ExecutorService exec = Executors.newSingleThreadExecutor();
 
-	@Resource(name = "smspocessorService")
-	private SmsPocessorService smspocessorService;
+	private DBHelper dbHelper = new DBHelper();
 
 	public CmppClientIoHandler(Object lock) {
 		LOCK = lock;
@@ -70,6 +72,10 @@ public class CmppClientIoHandler extends IoHandlerAdapter {
 		}
 		cause.printStackTrace();
 		session.close(true);
+
+		synchronized (CmppClient.IsConnected) {
+			CmppClient.IsConnected = false;
+		}
 	}
 
 	@Override
@@ -77,7 +83,6 @@ public class CmppClientIoHandler extends IoHandlerAdapter {
 		logger.info("Session " + session.getId() + " is opened");
 
 		doConnect(session);
-
 		session.resumeRead();
 	}
 
@@ -110,13 +115,26 @@ public class CmppClientIoHandler extends IoHandlerAdapter {
 						+ "]");
 
 				if (conrsp.getStatus() == 0) {
+
 					Connect = true;
 					/* 连接成功，则启动守护进程发送信息 */
 					startDeamonThreads(session);
+
+					synchronized (CmppClient.IsConnected) {
+						CmppClient.IsConnected = true;
+					}
+
 				} else {
+
 					Connect = false;
 					session.close(true);
+
+					// 连接失败
+					synchronized (CmppClient.IsConnected) {
+						CmppClient.IsConnected = false;
+					}
 				}
+
 				break;
 			// 链路检测应答报文
 			case CmppConstant.CMD_ACTIVE_TEST_RESP:
@@ -154,10 +172,12 @@ public class CmppClientIoHandler extends IoHandlerAdapter {
 						+ "subresp : ["
 						+ gson.toJson(subresp, SubmitResp.class) + "]");
 
-				pd.put("SEQ_ID", subresp.getSequenceNumber());
-				// 更新短信状态为发送成功
-				pd.put("STATUS", "1");
-				smspocessorService.editStatus(pd);
+				HashMap<String, Object> map = new HashMap<String, Object>();
+				map.put("SEQ_ID", subresp.getSequenceNumber());
+				// 更新短信状态为正在发送
+				map.put("STATUS", "2");
+				logger.info("更新短信发送状态为成功，SEQ_ID:" + map.get("SEQ_ID"));
+				dbHelper.updateMmsSendFlag(map);
 
 				break;
 			// ISMG向SP提交短信
@@ -175,21 +195,32 @@ public class CmppClientIoHandler extends IoHandlerAdapter {
 						+ "]" + "cmppDeliverResp : ["
 						+ gson.toJson(cmppDeliverResp, DeliverResp.class) + "]");
 
-				if (cmppDeliver.getIsReport() == 0) { //
+				if (cmppDeliver.getIsReport() == 0) { // 接收到的短信写入库表
 					logger.info("接收到消息：sms_mo");
 
+					logger.info("将接收到的短信写入数据库库, MSISDN:"
+							+ cmppDeliver.getSrcTermId() + ", CONTENT:"
+							+ cmppDeliver.getMsgContent());
+
+					HashMap<String, Object> insertMap = new HashMap<String, Object>();
 					// 接收的消息写入数据库表
-					pd.put("SMSPOCESSOR_ID", UuidUtil.get32UUID());
-					pd.put("MSISDN", cmppDeliver.getSrcTermId());
-					pd.put("TYPE", "接收");
+					insertMap.put("SMSPOCESSOR_ID", UuidUtil.get32UUID());
+					insertMap.put("MSISDN", cmppDeliver.getSrcTermId());
+					insertMap.put("TYPE", ZxtdConstant.SMS_TYPE_RECV);
+					insertMap.put("CONTENT", cmppDeliver.getMsgContent());
+
+					// 查询卡对应的USERID
+					String userName = dbHelper.getUserNameByMsisdn(cmppDeliver
+							.getSrcTermId());
 
 					// TODO 可以根据卡号查询得到用户ID
-					pd.put("USERID", "");
-					pd.put("STATUS", "1"); // 接收成功
-					pd.put("CREATETIME", new Date());
+					insertMap.put("USERID", userName);
+					insertMap.put("STATUS", "1"); // 接收成功
+					insertMap.put("CREATETIME", DateUtil.DateToString(
+							new Date(), DateStyle.YYYY_MM_DD_HH_MM_SS));
+					dbHelper.insertMmsSendMsg(insertMap);
 
-					smspocessorService.save(pd);
-				} else {
+				} else { // 接收到的短信报告不写入库表
 					logger.info("接收到的是短信报告：sms_stat");
 					ByteBuffer buffer = cmppDeliver.getSm().getData();
 					try {
@@ -248,7 +279,7 @@ public class CmppClientIoHandler extends IoHandlerAdapter {
 		active.setDaemon(true);
 		active.start();
 
-		// 从消息队列获取短信发送短信
+		// 发送短信
 		Thread send = new Thread(new MsgSendThread(session));
 		send.setDaemon(true);
 		send.start();

@@ -36,6 +36,25 @@
 		 	PARENT_ID != '7'
 	</select>
 	
+	
+	<!-- 列出二级角色信息，二级用户组 -->
+	<select id="listAllERRolesSecondGroup" resultMap="roleResultMap">
+		select 
+			ROLE_ID,
+			ROLE_NAME,
+			RIGHTS,
+			PARENT_ID,
+			ADD_QX,
+			DEL_QX,
+			EDIT_QX,
+			CHA_QX,
+			QX_ID
+		from SYS_ROLE 
+		where
+		 	PARENT_ID = '2251a1d1b41c422c878c87a6ac424328'
+	</select>
+	
+	
 	<!-- 列出会员二级角色信息 -->
 	<select id="listAllappERRoles" resultMap="roleResultMap">
 		select 
