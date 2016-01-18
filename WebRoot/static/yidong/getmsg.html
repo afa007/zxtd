@@ -1,0 +1,17 @@
+<ion-view  view-title="接收短信">
+<ion-header-bar align-title="center" class="bar-positive">
+    <h1 class="title"><i class="icon ion-ios-email-outline"></i> 接收短信</h1>
+</ion-header-bar>
+<ion-content>
+    <ion-list>
+        <ion-item ng-repeat="item in items">
+            <p><i class="icon ion-android-phone-portrait"></i> {{item.MSISDN}}</p>
+            <p><i class="icon ion-document"></i> {{item.CONTENT}}</p>
+            <p><i class="icon ion-clock"></i>{{item.CREATETIME}}</p>
+        </ion-item>
+
+    </ion-list>
+    <button ng-click="load_more();" class="button button-button-block button-assertive">加载更多...</button>
+
+</ion-content>
+</ion-view>

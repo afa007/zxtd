@@ -1,0 +1,23 @@
+<ion-view view-title="登录">
+<ion-header-bar align-title="center" class="bar-positive">
+    <h1 class="title"><i class="icon ion-ios-email-outline"></i> 登录</h1>
+</ion-header-bar>
+<ion-content>
+    <form ng-submit="login(data)" name="loginForm" >
+    <div class="list list-inset">
+        <div class="item item-input">
+            <i class="icon ion-person"></i>
+            <input  type="hidden" ng-model="data.action" name="action" value="login"/>
+            <input  type="text" ng-model="data.username" name="username" placeholder="请输入用户名" required />
+        </div>
+        <div class="item item-input">
+            <i class="icon ion-asterisk"></i>
+            <input type="password" ng-model="data.password" name="password" placeholder="请输入密码" required />
+        </div>
+    </div>
+    <div class="padding">
+        <input type="submit" ng-disabled="loginForm.$invalid"  class="button button-block button-assertive" value="登录"/>
+    </div>
+    </form>
+</ion-content>
+</ion-view>

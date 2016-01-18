@@ -1,0 +1,22 @@
+<ion-view view-title="发送短信">
+<ion-header-bar align-title="center" class="bar-positive">
+    <h1 class="title"><i class="icon ion-ios-email-outline"></i> 发送短信</h1>
+</ion-header-bar>
+<ion-content>
+    <form ng-submit="sendmsg(msg);" name="sendmsgForm">
+        <div class="list list-inset">
+            <div class="item item-input">
+                <i class="icon ion-iphone"></i>
+                <input  type="text" ng-model="msg.msisdn" name="msisdn" placeholder="请输入卡号" required/>
+            </div>
+            <div class="item item-input">
+                <i class="icon ion-document"></i>
+                <input type="text" ng-model="msg.content" name="content" placeholder="请输入短信内容" required/>
+            </div>
+        </div>
+        <div class="padding">
+            <input type="submit" ng-disabled="sendmsgForm.$invalid" class="button button-block button-assertive" value="发送"/>
+        </div>
+    </form>
+</ion-content>
+</ion-view>
